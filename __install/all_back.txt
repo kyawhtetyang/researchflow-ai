@@ -1,7 +1,7 @@
 ### __install/map.txt
 ```python
-# v0/__install/map.txt
-v0/
+# 07_ResearchFlow_AI/__install/map.txt
+07_ResearchFlow_AI/
 ├─ backend/
 │   ├─ alembic/
 │   │   ├─ versions/
@@ -9,7 +9,13 @@ v0/
 │   │   └─ script.py.mako
 │   ├─ app/
 │   │   ├─ agents/
+│   │   │   ├─ adapters/
+│   │   │   │   ├─ __init__.py
+│   │   │   │   ├─ langchain_adapter.py
+│   │   │   │   ├─ langgraph_adapter.py
+│   │   │   │   └─ llamaindex_adapter.py
 │   │   │   ├─ __init__.py
+│   │   │   ├─ openai_agents_runner.py
 │   │   │   ├─ orchestrator.py
 │   │   │   ├─ planner.py
 │   │   │   ├─ report_agent.py
@@ -17,16 +23,26 @@ v0/
 │   │   │   ├─ search_agent.py
 │   │   │   └─ summarizer_agent.py
 │   │   ├─ api/
+│   │   │   ├─ capabilities.py
 │   │   │   ├─ eval.py
 │   │   │   ├─ jobs.py
 │   │   │   ├─ reports.py
 │   │   │   └─ research.py
+│   │   ├─ evals/
+│   │   │   ├─ __init__.py
+│   │   │   ├─ scoring.py
+│   │   │   └─ traces.py
 │   │   ├─ models/
 │   │   │   ├─ __init__.py
 │   │   │   ├─ report.py
 │   │   │   ├─ research_job.py
 │   │   │   ├─ research_step.py
 │   │   │   └─ source.py
+│   │   ├─ rag/
+│   │   │   ├─ __init__.py
+│   │   │   ├─ embeddings.py
+│   │   │   ├─ indexer.py
+│   │   │   └─ retriever.py
 │   │   ├─ services/
 │   │   │   ├─ __init__.py
 │   │   │   ├─ citations.py
@@ -47,7 +63,6 @@ v0/
 │   ├─ alembic.ini
 │   ├─ Dockerfile
 │   └─ requirements.txt
-├─ docs/
 ├─ frontend/
 │   ├─ app.js
 │   ├─ index.html
@@ -59,22 +74,22 @@ v0/
 
 ### backend
 ```python
-# v0/backend/
+# 07_ResearchFlow_AI/backend/
 ```
 
 ### backend/alembic
 ```python
-# v0/backend/alembic/
+# 07_ResearchFlow_AI/backend/alembic/
 ```
 
 ### backend/alembic/versions
 ```python
-# v0/backend/alembic/versions/
+# 07_ResearchFlow_AI/backend/alembic/versions/
 ```
 
 ##### env.py
 ```python
-# v0/backend/alembic/env.py
+# 07_ResearchFlow_AI/backend/alembic/env.py
 from logging.config import fileConfig
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
@@ -133,7 +148,7 @@ else:
 
 ##### script.py.mako
 ```shell
-# v0/backend/alembic/script.py.mako
+# 07_ResearchFlow_AI/backend/alembic/script.py.mako
 """${message}
 
 Revision ID: ${up_revision}
@@ -162,22 +177,107 @@ def downgrade() -> None:
 
 ### backend/app
 ```python
-# v0/backend/app/
+# 07_ResearchFlow_AI/backend/app/
 ```
 
 ### backend/app/agents
 ```python
-# v0/backend/app/agents/
+# 07_ResearchFlow_AI/backend/app/agents/
+```
+
+### backend/app/agents/adapters
+```python
+# 07_ResearchFlow_AI/backend/app/agents/adapters/
+```
+
+####### __init__.py
+```python
+# 07_ResearchFlow_AI/backend/app/agents/adapters/__init__.py
+from app.agents.adapters.langchain_adapter import langchain_capability
+from app.agents.adapters.langgraph_adapter import langgraph_capability
+from app.agents.adapters.llamaindex_adapter import llamaindex_capability
+
+__all__ = ["langchain_capability", "langgraph_capability", "llamaindex_capability"]
+```
+
+####### langchain_adapter.py
+```python
+# 07_ResearchFlow_AI/backend/app/agents/adapters/langchain_adapter.py
+def langchain_capability() -> dict[str, object]:
+    return {
+        "framework": "LangChain",
+        "mode": "adapter_contract",
+        "concepts": ["retrievers", "tools", "LCEL", "structured output"],
+        "project_use": "Compare chain-style research composition with the native orchestrator.",
+        "production_rule": "Keep deterministic internal services as the source of truth.",
+    }
+```
+
+####### langgraph_adapter.py
+```python
+# 07_ResearchFlow_AI/backend/app/agents/adapters/langgraph_adapter.py
+def langgraph_capability() -> dict[str, object]:
+    return {
+        "framework": "LangGraph",
+        "mode": "adapter_contract",
+        "concepts": ["state graph", "checkpoints", "conditional edges", "retry paths"],
+        "project_use": "Model Plan -> Search -> Analyze -> Report -> Evaluate as resumable graph nodes.",
+        "production_rule": "Persist job state before every external tool boundary.",
+    }
+```
+
+####### llamaindex_adapter.py
+```python
+# 07_ResearchFlow_AI/backend/app/agents/adapters/llamaindex_adapter.py
+def llamaindex_capability() -> dict[str, object]:
+    return {
+        "framework": "LlamaIndex",
+        "mode": "adapter_contract",
+        "concepts": ["document connectors", "indexing", "query engines", "citation nodes"],
+        "project_use": "Compare document-indexed research against pgvector-backed retrieval.",
+        "production_rule": "Normalize citations into the internal Source model before reporting.",
+    }
 ```
 
 ###### __init__.py
 ```python
-# v0/backend/app/agents/__init__.py
+# 07_ResearchFlow_AI/backend/app/agents/__init__.py
+```
+
+###### openai_agents_runner.py
+```python
+# 07_ResearchFlow_AI/backend/app/agents/openai_agents_runner.py
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class AgentToolSpec:
+    name: str
+    purpose: str
+
+
+def openai_agents_blueprint() -> dict[str, object]:
+    """Framework-facing plan for a future OpenAI Agents SDK implementation."""
+    tools = [
+        AgentToolSpec("plan_research", "Break a question into evidence-seeking steps."),
+        AgentToolSpec("search_sources", "Collect candidate sources with quality metadata."),
+        AgentToolSpec("retrieve_memory", "Pull prior project and RAG context."),
+        AgentToolSpec("write_report", "Produce a cited markdown research report."),
+        AgentToolSpec("score_output", "Run deterministic quality checks."),
+    ]
+    return {
+        "framework": "OpenAI Agents SDK",
+        "mode": "adapter_contract",
+        "handoffs": ["planner", "researcher", "analyst", "reporter", "evaluator"],
+        "guardrails": ["source_required", "citation_required", "no_secret_output"],
+        "tracing": ["job_id", "step_name", "tool_name", "latency_ms", "quality_score"],
+        "tools": [tool.__dict__ for tool in tools],
+    }
 ```
 
 ###### orchestrator.py
 ```python
-# v0/backend/app/agents/orchestrator.py
+# 07_ResearchFlow_AI/backend/app/agents/orchestrator.py
 from __future__ import annotations
 
 from datetime import datetime
@@ -260,7 +360,7 @@ def run_research_job(db: Session, job: ResearchJob) -> ResearchJob:
 
 ###### planner.py
 ```python
-# v0/backend/app/agents/planner.py
+# 07_ResearchFlow_AI/backend/app/agents/planner.py
 from __future__ import annotations
 
 
@@ -280,7 +380,7 @@ def plan_research(query: str) -> list[str]:
 
 ###### report_agent.py
 ```python
-# v0/backend/app/agents/report_agent.py
+# 07_ResearchFlow_AI/backend/app/agents/report_agent.py
 from __future__ import annotations
 
 
@@ -331,12 +431,12 @@ def generate_report(query: str, plan: list[str], findings: list[str], sources: l
 
 ###### retrieval_agent.py
 ```python
-# v0/backend/app/agents/retrieval_agent.py
+# 07_ResearchFlow_AI/backend/app/agents/retrieval_agent.py
 ```
 
 ###### search_agent.py
 ```python
-# v0/backend/app/agents/search_agent.py
+# 07_ResearchFlow_AI/backend/app/agents/search_agent.py
 from __future__ import annotations
 
 
@@ -421,7 +521,7 @@ def search_sources(query: str) -> list[dict]:
 
 ###### summarizer_agent.py
 ```python
-# v0/backend/app/agents/summarizer_agent.py
+# 07_ResearchFlow_AI/backend/app/agents/summarizer_agent.py
 from __future__ import annotations
 
 
@@ -445,12 +545,54 @@ def summarize_findings(query: str, sources: list[dict]) -> list[str]:
 
 ### backend/app/api
 ```python
-# v0/backend/app/api/
+# 07_ResearchFlow_AI/backend/app/api/
+```
+
+###### capabilities.py
+```python
+# 07_ResearchFlow_AI/backend/app/api/capabilities.py
+from fastapi import APIRouter
+
+from app.agents.adapters import langchain_capability, langgraph_capability, llamaindex_capability
+from app.agents.openai_agents_runner import openai_agents_blueprint
+from app.evals import evaluation_capability, tracing_capability
+from app.rag import embedding_capability, indexing_capability, retrieval_capability
+
+router = APIRouter()
+
+
+@router.get("/")
+def capabilities() -> dict[str, object]:
+    return {
+        "version": "2.0.0",
+        "release": "full_ai_research_platform",
+        "core": {
+            "backend": ["FastAPI", "PostgreSQL", "pgvector", "Docker", "SQLAlchemy", "Alembic"],
+            "workflow": ["custom planner", "custom orchestrator", "worker", "reports", "citations"],
+            "frontend": ["standalone ResearchFlow UI", "AI/ML Portfolio Ask integration"],
+        },
+        "agents": {
+            "native": "Plan -> Search -> Analyze -> Report -> Evaluate",
+            "openai_agents_sdk": openai_agents_blueprint(),
+            "langgraph": langgraph_capability(),
+            "llamaindex": llamaindex_capability(),
+            "langchain": langchain_capability(),
+        },
+        "rag": {
+            "embeddings": embedding_capability(),
+            "indexing": indexing_capability(),
+            "retrieval": retrieval_capability(),
+        },
+        "quality": {
+            "evals": evaluation_capability(),
+            "observability": tracing_capability(),
+        },
+    }
 ```
 
 ###### eval.py
 ```python
-# v0/backend/app/api/eval.py
+# 07_ResearchFlow_AI/backend/app/api/eval.py
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
@@ -495,7 +637,7 @@ def run_eval(db: Session = Depends(get_db)):
 
 ###### jobs.py
 ```python
-# v0/backend/app/api/jobs.py
+# 07_ResearchFlow_AI/backend/app/api/jobs.py
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
@@ -542,7 +684,7 @@ def get_job(job_id: int, db: Session = Depends(get_db)):
 
 ###### reports.py
 ```python
-# v0/backend/app/api/reports.py
+# 07_ResearchFlow_AI/backend/app/api/reports.py
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -569,7 +711,7 @@ def get_sources(job_id: int, db: Session = Depends(get_db)):
 
 ###### research.py
 ```python
-# v0/backend/app/api/research.py
+# 07_ResearchFlow_AI/backend/app/api/research.py
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.db import get_db
@@ -639,14 +781,52 @@ def get_research_summary(job_id: int, db: Session = Depends(get_db)):
     )
 ```
 
-### backend/app/models
+### backend/app/evals
 ```python
-# v0/backend/app/models/
+# 07_ResearchFlow_AI/backend/app/evals/
 ```
 
 ###### __init__.py
 ```python
-# v0/backend/app/models/__init__.py
+# 07_ResearchFlow_AI/backend/app/evals/__init__.py
+from app.evals.scoring import evaluation_capability
+from app.evals.traces import tracing_capability
+
+__all__ = ["evaluation_capability", "tracing_capability"]
+```
+
+###### scoring.py
+```python
+# 07_ResearchFlow_AI/backend/app/evals/scoring.py
+def evaluation_capability() -> dict[str, object]:
+    return {
+        "component": "evaluation",
+        "metrics": ["readiness_score", "source_count", "citation_coverage", "step_completion"],
+        "regression_checks": ["minimum_sources", "report_sections", "no_empty_steps"],
+        "reason": "Recruiter-ready AI systems need measurable output quality.",
+    }
+```
+
+###### traces.py
+```python
+# 07_ResearchFlow_AI/backend/app/evals/traces.py
+def tracing_capability() -> dict[str, object]:
+    return {
+        "component": "observability",
+        "events": ["job_created", "step_started", "tool_called", "report_written", "eval_scored"],
+        "fields": ["job_id", "step", "status", "latency_ms", "quality_score"],
+        "reason": "Trace shape is defined now so LangSmith, OpenAI tracing, or custom tables can plug in later.",
+    }
+```
+
+### backend/app/models
+```python
+# 07_ResearchFlow_AI/backend/app/models/
+```
+
+###### __init__.py
+```python
+# 07_ResearchFlow_AI/backend/app/models/__init__.py
 from app.db import Base
 from app.models.research_job import ResearchJob
 from app.models.research_step import ResearchStep
@@ -656,7 +836,7 @@ from app.models.report import Report
 
 ###### report.py
 ```python
-# v0/backend/app/models/report.py
+# 07_ResearchFlow_AI/backend/app/models/report.py
 from datetime import datetime
 from sqlalchemy import Column, Integer, Text, DateTime, ForeignKey
 from app.db import Base
@@ -672,7 +852,7 @@ class Report(Base):
 
 ###### research_job.py
 ```python
-# v0/backend/app/models/research_job.py
+# 07_ResearchFlow_AI/backend/app/models/research_job.py
 from datetime import datetime
 from sqlalchemy import Column, Integer, String, DateTime, Text
 from app.db import Base
@@ -691,7 +871,7 @@ class ResearchJob(Base):
 
 ###### research_step.py
 ```python
-# v0/backend/app/models/research_step.py
+# 07_ResearchFlow_AI/backend/app/models/research_step.py
 from datetime import datetime
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text
 from app.db import Base
@@ -711,7 +891,7 @@ class ResearchStep(Base):
 
 ###### source.py
 ```python
-# v0/backend/app/models/source.py
+# 07_ResearchFlow_AI/backend/app/models/source.py
 from datetime import datetime
 from sqlalchemy import Column, Integer, String, Text, ForeignKey, Float, DateTime
 from app.db import Base
@@ -730,19 +910,70 @@ class Source(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 ```
 
-### backend/app/services
+### backend/app/rag
 ```python
-# v0/backend/app/services/
+# 07_ResearchFlow_AI/backend/app/rag/
 ```
 
 ###### __init__.py
 ```python
-# v0/backend/app/services/__init__.py
+# 07_ResearchFlow_AI/backend/app/rag/__init__.py
+from app.rag.embeddings import embedding_capability
+from app.rag.indexer import indexing_capability
+from app.rag.retriever import retrieval_capability
+
+__all__ = ["embedding_capability", "indexing_capability", "retrieval_capability"]
+```
+
+###### embeddings.py
+```python
+# 07_ResearchFlow_AI/backend/app/rag/embeddings.py
+def embedding_capability() -> dict[str, object]:
+    return {
+        "component": "embeddings",
+        "default_provider": "hash",
+        "upgrade_path": ["OpenAI embeddings", "sentence-transformers", "hybrid BM25 + vector"],
+        "reason": "Keep local verification deterministic while exposing production RAG design.",
+    }
+```
+
+###### indexer.py
+```python
+# 07_ResearchFlow_AI/backend/app/rag/indexer.py
+def indexing_capability() -> dict[str, object]:
+    return {
+        "component": "indexer",
+        "stores": ["PostgreSQL", "pgvector"],
+        "pipeline": ["load", "chunk", "embed", "upsert", "verify_citations"],
+        "reason": "Make ingestion auditable before research jobs consume documents.",
+    }
+```
+
+###### retriever.py
+```python
+# 07_ResearchFlow_AI/backend/app/rag/retriever.py
+def retrieval_capability() -> dict[str, object]:
+    return {
+        "component": "retriever",
+        "strategies": ["semantic", "keyword", "source_quality_rerank"],
+        "outputs": ["source_id", "title", "url", "excerpt", "quality_score"],
+        "reason": "Reports should show where claims came from, not only produce text.",
+    }
+```
+
+### backend/app/services
+```python
+# 07_ResearchFlow_AI/backend/app/services/
+```
+
+###### __init__.py
+```python
+# 07_ResearchFlow_AI/backend/app/services/__init__.py
 ```
 
 ###### citations.py
 ```python
-# v0/backend/app/services/citations.py
+# 07_ResearchFlow_AI/backend/app/services/citations.py
 from __future__ import annotations
 
 
@@ -763,27 +994,27 @@ def score_source_quality(source: dict) -> float:
 
 ###### memory.py
 ```python
-# v0/backend/app/services/memory.py
+# 07_ResearchFlow_AI/backend/app/services/memory.py
 ```
 
 ###### reports.py
 ```python
-# v0/backend/app/services/reports.py
+# 07_ResearchFlow_AI/backend/app/services/reports.py
 ```
 
 ###### vector_search.py
 ```python
-# v0/backend/app/services/vector_search.py
+# 07_ResearchFlow_AI/backend/app/services/vector_search.py
 ```
 
 ###### web_search.py
 ```python
-# v0/backend/app/services/web_search.py
+# 07_ResearchFlow_AI/backend/app/services/web_search.py
 ```
 
 ##### config.py
 ```python
-# v0/backend/app/config.py
+# 07_ResearchFlow_AI/backend/app/config.py
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
@@ -799,7 +1030,7 @@ settings = Settings()
 
 ##### db.py
 ```python
-# v0/backend/app/db.py
+# 07_ResearchFlow_AI/backend/app/db.py
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 from app.config import settings
@@ -819,16 +1050,16 @@ def get_db():
 
 ##### main.py
 ```python
-# v0/backend/app/main.py
+# 07_ResearchFlow_AI/backend/app/main.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
-from app.api import eval, jobs, reports, research
+from app.api import capabilities, eval, jobs, reports, research
 from app.db import Base, engine
 
-app = FastAPI(title="ResearchFlow AI API", version="1.0.0")
+app = FastAPI(title="ResearchFlow AI API", version="2.0.0")
 FRONTEND_DIR = Path(__file__).resolve().parents[1] / "frontend"
 
 Base.metadata.create_all(bind=engine)
@@ -845,13 +1076,14 @@ app.include_router(research.router, prefix="/api/research", tags=["research"])
 app.include_router(jobs.router, prefix="/api/jobs", tags=["jobs"])
 app.include_router(reports.router, prefix="/api/reports", tags=["reports"])
 app.include_router(eval.router, prefix="/api/eval", tags=["eval"])
+app.include_router(capabilities.router, prefix="/api/capabilities", tags=["capabilities"])
 
 if FRONTEND_DIR.exists():
     app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
 
 @app.get("/health")
 def healthcheck():
-    return {"status": "ok", "app": "ResearchFlow AI", "version": "1.0.0"}
+    return {"status": "ok", "app": "ResearchFlow AI", "version": "2.0.0"}
 
 @app.get("/", response_class=FileResponse)
 def frontend():
@@ -860,7 +1092,7 @@ def frontend():
 
 ##### schemas.py
 ```python
-# v0/backend/app/schemas.py
+# 07_ResearchFlow_AI/backend/app/schemas.py
 from pydantic import BaseModel, Field
 from typing import Optional, List
 from datetime import datetime
@@ -941,7 +1173,7 @@ class EvalRunResponse(BaseModel):
 
 ##### worker.py
 ```python
-# v0/backend/app/worker.py
+# 07_ResearchFlow_AI/backend/app/worker.py
 from __future__ import annotations
 
 import time
@@ -981,17 +1213,17 @@ if __name__ == "__main__":
 
 ### backend/frontend
 ```python
-# v0/backend/frontend/
+# 07_ResearchFlow_AI/backend/frontend/
 ```
 
 ### backend/scripts
 ```python
-# v0/backend/scripts/
+# 07_ResearchFlow_AI/backend/scripts/
 ```
 
 ##### first_boot_verify.py
 ```python
-# v0/backend/scripts/first_boot_verify.py
+# 07_ResearchFlow_AI/backend/scripts/first_boot_verify.py
 from __future__ import annotations
 
 import argparse
@@ -1081,16 +1313,17 @@ if __name__ == "__main__":
 
 ### backend/tests
 ```python
-# v0/backend/tests/
+# 07_ResearchFlow_AI/backend/tests/
 ```
 
 ##### test_agents.py
 ```python
-# v0/backend/tests/test_agents.py
+# 07_ResearchFlow_AI/backend/tests/test_agents.py
 from app.agents.planner import plan_research
 from app.agents.report_agent import generate_report
 from app.agents.search_agent import search_sources
 from app.agents.summarizer_agent import summarize_findings
+from app.api.capabilities import capabilities
 
 
 def test_research_agents_generate_a_recruiter_ready_report():
@@ -1107,11 +1340,23 @@ def test_research_agents_generate_a_recruiter_ready_report():
     assert "ResearchFlow AI" in report
     assert "Recruiter-Facing Proof" in report
     assert "OpenAI Agents SDK" in report
+
+
+def test_v2_capabilities_expose_framework_contracts():
+    payload = capabilities()
+
+    assert payload["version"] == "2.0.0"
+    assert payload["agents"]["openai_agents_sdk"]["framework"] == "OpenAI Agents SDK"
+    assert payload["agents"]["langgraph"]["framework"] == "LangGraph"
+    assert payload["agents"]["llamaindex"]["framework"] == "LlamaIndex"
+    assert payload["agents"]["langchain"]["framework"] == "LangChain"
+    assert "pgvector" in payload["core"]["backend"]
+    assert "AI/ML Portfolio Ask integration" in payload["core"]["frontend"]
 ```
 
 #### alembic.ini
 ```shell
-# v0/backend/alembic.ini
+# 07_ResearchFlow_AI/backend/alembic.ini
 [alembic]
 script_location = alembic
 sqlalchemy.url = postgresql+psycopg2://postgres:postgres@db:5432/researchflow
@@ -1155,7 +1400,7 @@ datefmt = %H:%M:%S
 
 #### Dockerfile
 ```shell
-# v0/backend/Dockerfile
+# 07_ResearchFlow_AI/backend/Dockerfile
 FROM python:3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE 1
@@ -1176,7 +1421,7 @@ COPY . .
 
 #### requirements.txt
 ```text
-# v0/backend/requirements.txt
+# 07_ResearchFlow_AI/backend/requirements.txt
 fastapi
 uvicorn[standard]
 sqlalchemy
@@ -1188,19 +1433,14 @@ openai
 pytest
 ```
 
-### docs
-```python
-# v0/docs/
-```
-
 ### frontend
 ```python
-# v0/frontend/
+# 07_ResearchFlow_AI/frontend/
 ```
 
 #### app.js
 ```javascript
-# v0/frontend/app.js
+# 07_ResearchFlow_AI/frontend/app.js
 const queryEl = document.querySelector("#query");
 const runEl = document.querySelector("#run");
 const stepsEl = document.querySelector("#steps");
@@ -1312,7 +1552,7 @@ copyReportEl.addEventListener("click", async () => {
 
 #### index.html
 ```html
-# v0/frontend/index.html
+# 07_ResearchFlow_AI/frontend/index.html
 <!doctype html>
 <html lang="en">
   <head>
@@ -1380,7 +1620,7 @@ copyReportEl.addEventListener("click", async () => {
 
 #### styles.css
 ```css
-# v0/frontend/styles.css
+# 07_ResearchFlow_AI/frontend/styles.css
 * {
   box-sizing: border-box;
 }
@@ -1630,7 +1870,7 @@ pre {
 
 ### .env.example
 ```shell
-# v0/.env.example
+# 07_ResearchFlow_AI/.env.example
 # Database configuration
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=postgres
@@ -1647,7 +1887,7 @@ OPENAI_API_KEY=your_openai_api_key_here
 
 ### docker-compose.yml
 ```yaml
-# v0/docker-compose.yml
+# 07_ResearchFlow_AI/docker-compose.yml
 services:
   api:
     build:
@@ -1702,7 +1942,7 @@ volumes:
 
 ### README.md
 ```markdown
-# v0/README.md
+# 07_ResearchFlow_AI/README.md
 # ResearchFlow AI
 
 Agentic research workflow platform:
@@ -1729,6 +1969,7 @@ python3 backend/scripts/first_boot_verify.py http://127.0.0.1:8000
 
 ## API
 - `GET /health`
+- `GET /api/capabilities`
 - `POST /api/research/`
 - `GET /api/research/{job_id}`
 - `GET /api/research/{job_id}/summary`
@@ -1737,12 +1978,12 @@ python3 backend/scripts/first_boot_verify.py http://127.0.0.1:8000
 - `POST /api/eval/run`
 
 ## Current Release
-- `v1`: standalone custom orchestrator with readiness score, eval summary, frontend demo, tests, and verifier.
+- `v2`: full AI research platform with standalone UI, Portfolio Ask integration, RAG contracts, eval/observability contracts, OpenAI Agents SDK blueprint, and LangGraph/LlamaIndex/LangChain adapter contracts.
 
 ## Version Roadmap
-- `v1.5`: evaluation and observability.
-- `v2`: OpenAI Agents SDK.
-- `v2.5`: LangGraph, LangChain, and LlamaIndex comparison.
-- `v3`: AI/ML Portfolio Ask integration.
+- `v0`: production backend scaffold.
+- `v0.1`: basic custom research workflow.
+- `v1`: recruiter-ready standalone release.
+- `v2`: final platform release combining agent framework readiness, RAG, evals, observability, and portfolio integration.
 ```
 

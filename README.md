@@ -24,6 +24,7 @@ python3 backend/scripts/first_boot_verify.py http://127.0.0.1:8000
 
 ## API
 - `GET /health`
+- `GET /api/capabilities`
 - `POST /api/research/`
 - `GET /api/research/{job_id}`
 - `GET /api/research/{job_id}/summary`
@@ -32,10 +33,10 @@ python3 backend/scripts/first_boot_verify.py http://127.0.0.1:8000
 - `POST /api/eval/run`
 
 ## Current Release
-- `v1`: standalone custom orchestrator with readiness score, eval summary, frontend demo, tests, and verifier.
+- `v2`: full AI research platform with standalone UI, Portfolio Ask integration, RAG contracts, eval/observability contracts, OpenAI Agents SDK blueprint, and LangGraph/LlamaIndex/LangChain adapter contracts.
 
 ## Version Roadmap
-- `v1.5`: evaluation and observability.
-- `v2`: OpenAI Agents SDK.
-- `v2.5`: LangGraph, LangChain, and LlamaIndex comparison.
-- `v3`: AI/ML Portfolio Ask integration.
+- `v0`: production backend scaffold.
+- `v0.1`: basic custom research workflow.
+- `v1`: recruiter-ready standalone release.
+- `v2`: final platform release combining agent framework readiness, RAG, evals, observability, and portfolio integration.

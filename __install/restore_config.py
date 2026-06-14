@@ -114,7 +114,10 @@ def should_skip_restore_path(rel_path, extra_suffixes=()):
 
 
 def detect_project_name(project_root):
-    return Path(project_root).resolve().parent.name
+    root = Path(project_root).resolve()
+    if re.match(r"^[0-9]{2}_.+", root.name):
+        return root.name
+    return root.parent.name
 
 
 def default_refill_source(project_root):

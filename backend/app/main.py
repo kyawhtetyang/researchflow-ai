@@ -3,10 +3,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
-from app.api import eval, jobs, reports, research
+from app.api.capabilities import router as capabilities_router
+from app.api.eval import router as eval_router
+from app.api.jobs import router as jobs_router
+from app.api.reports import router as reports_router
+from app.api.research import router as research_router
 from app.db import Base, engine
+from app import models  # noqa: F401
 
-app = FastAPI(title="ResearchFlow AI API", version="1.0.0")
+app = FastAPI(title="ResearchFlow AI API", version="2.0.0")
 FRONTEND_DIR = Path(__file__).resolve().parents[1] / "frontend"
 
 Base.metadata.create_all(bind=engine)
@@ -19,17 +24,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(research.router, prefix="/api/research", tags=["research"])
-app.include_router(jobs.router, prefix="/api/jobs", tags=["jobs"])
-app.include_router(reports.router, prefix="/api/reports", tags=["reports"])
-app.include_router(eval.router, prefix="/api/eval", tags=["eval"])
+app.include_router(research_router, prefix="/api/research", tags=["research"])
+app.include_router(jobs_router, prefix="/api/jobs", tags=["jobs"])
+app.include_router(reports_router, prefix="/api/reports", tags=["reports"])
+app.include_router(eval_router, prefix="/api/eval", tags=["eval"])
+app.include_router(capabilities_router, prefix="/api/capabilities", tags=["capabilities"])
 
 if FRONTEND_DIR.exists():
     app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
 
 @app.get("/health")
 def healthcheck():
-    return {"status": "ok", "app": "ResearchFlow AI", "version": "1.0.0"}
+    return {"status": "ok", "app": "ResearchFlow AI", "version": "2.0.0"}
 
 @app.get("/", response_class=FileResponse)
 def frontend():

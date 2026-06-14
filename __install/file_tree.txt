@@ -1,4 +1,4 @@
-v0/
+07_ResearchFlow_AI/
 ├─ backend/
 │   ├─ alembic/
 │   │   ├─ versions/
@@ -6,7 +6,13 @@ v0/
 │   │   └─ script.py.mako
 │   ├─ app/
 │   │   ├─ agents/
+│   │   │   ├─ adapters/
+│   │   │   │   ├─ __init__.py
+│   │   │   │   ├─ langchain_adapter.py
+│   │   │   │   ├─ langgraph_adapter.py
+│   │   │   │   └─ llamaindex_adapter.py
 │   │   │   ├─ __init__.py
+│   │   │   ├─ openai_agents_runner.py
 │   │   │   ├─ orchestrator.py
 │   │   │   ├─ planner.py
 │   │   │   ├─ report_agent.py
@@ -14,16 +20,26 @@ v0/
 │   │   │   ├─ search_agent.py
 │   │   │   └─ summarizer_agent.py
 │   │   ├─ api/
+│   │   │   ├─ capabilities.py
 │   │   │   ├─ eval.py
 │   │   │   ├─ jobs.py
 │   │   │   ├─ reports.py
 │   │   │   └─ research.py
+│   │   ├─ evals/
+│   │   │   ├─ __init__.py
+│   │   │   ├─ scoring.py
+│   │   │   └─ traces.py
 │   │   ├─ models/
 │   │   │   ├─ __init__.py
 │   │   │   ├─ report.py
 │   │   │   ├─ research_job.py
 │   │   │   ├─ research_step.py
 │   │   │   └─ source.py
+│   │   ├─ rag/
+│   │   │   ├─ __init__.py
+│   │   │   ├─ embeddings.py
+│   │   │   ├─ indexer.py
+│   │   │   └─ retriever.py
 │   │   ├─ services/
 │   │   │   ├─ __init__.py
 │   │   │   ├─ citations.py
@@ -44,7 +60,6 @@ v0/
 │   ├─ alembic.ini
 │   ├─ Dockerfile
 │   └─ requirements.txt
-├─ docs/
 ├─ frontend/
 │   ├─ app.js
 │   ├─ index.html
