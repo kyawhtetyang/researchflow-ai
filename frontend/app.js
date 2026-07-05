@@ -12,6 +12,9 @@ const copyReportEl = document.querySelector("#copy-report");
 const themeToggleEl = document.querySelector("#theme-toggle");
 const reloadPageEl = document.querySelector("#reload-page");
 let latestReport = "";
+const apiBase = String(window.RESEARCHFLOW_API_BASE || window.location.origin).replace(/\/+$/, "");
+
+const apiUrl = (path) => `${apiBase}${path}`;
 
 const getStoredTheme = () => {
   try {
@@ -72,8 +75,8 @@ const renderMarkdown = (markdown) => {
 
 const loadJob = async (jobId) => {
   const [detail, summary] = await Promise.all([
-    fetch(`/api/research/${jobId}`).then((res) => res.json()),
-    fetch(`/api/research/${jobId}/summary`).then((res) => res.json()),
+    fetch(apiUrl(`/api/research/${jobId}`)).then((res) => res.json()),
+    fetch(apiUrl(`/api/research/${jobId}/summary`)).then((res) => res.json()),
   ]);
   renderJob(detail, summary);
 };
@@ -106,7 +109,7 @@ const renderJobHistory = (jobs) => {
 
 const refreshJobHistory = async () => {
   try {
-    const jobs = await fetch("/api/research/").then((res) => res.json());
+    const jobs = await fetch(apiUrl("/api/research/")).then((res) => res.json());
     renderJobHistory(Array.isArray(jobs) ? jobs : []);
   } catch (error) {
     if (!jobHistoryEl) return;
@@ -155,15 +158,15 @@ runEl.addEventListener("click", async () => {
   reportEl.textContent = "Running research workflow...";
 
   try {
-    const created = await fetch("/api/research/", {
+    const created = await fetch(apiUrl("/api/research/"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ query, run_now: true }),
     }).then((res) => res.json());
 
     const [detail, summary] = await Promise.all([
-      fetch(`/api/research/${created.id}`).then((res) => res.json()),
-      fetch(`/api/research/${created.id}/summary`).then((res) => res.json()),
+      fetch(apiUrl(`/api/research/${created.id}`)).then((res) => res.json()),
+      fetch(apiUrl(`/api/research/${created.id}/summary`)).then((res) => res.json()),
     ]);
     renderJob(detail, summary);
     await refreshJobHistory();

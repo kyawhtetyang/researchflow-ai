@@ -4,7 +4,13 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ResearchFlow AI</title>
-    <link rel="stylesheet" href="/static/styles.css" />
+    <link rel="stylesheet" href="./styles.css" />
+    <script>
+      window.RESEARCHFLOW_API_BASE =
+        window.RESEARCHFLOW_API_BASE ||
+        new URLSearchParams(window.location.search).get("api_base") ||
+        "http://127.0.0.1:8000";
+    </script>
   </head>
   <body>
     <div class="app-frame">
@@ -143,6 +149,6 @@
         </div>
       </nav>
     </div>
-    <script src="/static/app.js"></script>
+    <script src="./app.js"></script>
   </body>
 </html>

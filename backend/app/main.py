@@ -45,5 +45,3 @@ def healthcheck():
 @app.get("/", response_class=FileResponse)
 def frontend():
     return FileResponse(FRONTEND_DIR / "index.html")
-
-##### schemas.py
