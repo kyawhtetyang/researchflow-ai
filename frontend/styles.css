@@ -89,7 +89,7 @@ button:disabled {
 }
 
 .shell-brand {
-  margin-bottom: 2.5rem;
+  margin-bottom: 2.15rem;
 }
 
 .shell-brand-button {
@@ -113,18 +113,23 @@ button:disabled {
   background: rgba(255, 255, 255, 0.12);
 }
 
-.shell-brand-badge {
-  display: flex;
+.shell-brand-photo {
+  display: block;
   height: 2rem;
   width: 2rem;
-  align-items: center;
-  justify-content: center;
   border-radius: 999px;
+  object-fit: cover;
   border: 1px solid #e5e7eb;
-  background: white;
-  color: #1d1d1f;
-  font-size: 11px;
-  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.dark .shell-brand-photo {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.shell-brand-copy {
+  display: none;
+  min-width: 0;
 }
 
 .shell-brand-name {
@@ -152,7 +157,8 @@ button:disabled {
   display: none;
   margin: 0;
   padding: 0 0.75rem;
-  margin-bottom: 0.5rem;
+  transform: translateY(-0.32rem);
+  margin-bottom: 0.38rem;
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
@@ -170,9 +176,10 @@ button:disabled {
   gap: 0.75rem;
   padding: 0.625rem 1rem;
   border: 0;
-  border-radius: 0.75rem;
+  border-radius: 0.5rem;
   background: rgba(0, 0, 0, 0.05);
   color: var(--brand-accent);
+  font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
 }
@@ -184,6 +191,7 @@ button:disabled {
 .shell-nav-icon {
   width: 1.25rem;
   height: 1.25rem;
+  color: currentColor;
 }
 
 .shell-nav-icon svg,
@@ -195,9 +203,10 @@ button:disabled {
 
 .shell-nav-text {
   display: none;
-  font-size: 0.875rem;
+  font-size: 0.9375rem;
   font-weight: 600;
   line-height: 1;
+  letter-spacing: -0.01em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -294,9 +303,15 @@ button:disabled {
   height: 1rem;
 }
 
-html.dark .theme-icon-sun,
-html:not(.dark) .theme-icon-moon {
+.theme-icon {
+  opacity: 1;
+  transition: opacity 160ms ease;
+}
+
+html.dark .theme-icon-moon,
+html:not(.dark) .theme-icon-sun {
   opacity: 0;
+  pointer-events: none;
 }
 
 .workspace {
@@ -307,7 +322,6 @@ html:not(.dark) .theme-icon-moon {
 
 .workspace-card,
 .rail-card {
-  border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 1.5rem;
   background: white;
   padding: 1.5rem;
@@ -316,42 +330,44 @@ html:not(.dark) .theme-icon-moon {
 .dark .workspace-card,
 .dark .rail-card {
   background: #151a22;
-  border-color: rgba(255, 255, 255, 0.12);
 }
 
 .workspace-kicker {
-  font-size: 0.875rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--brand-accent);
+  color: color-mix(in srgb, var(--brand-accent) 72%, white 28%);
+  opacity: 0.88;
 }
 
 .composer-panel {
   margin-top: 1rem;
   border-radius: 1rem;
   background: #f3f4f7;
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  border: 0;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.04);
   padding: 1.25rem;
 }
 
 .dark .composer-panel {
   background: #11151d;
-  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
 }
 
 .composer-copy h2,
 .report-header h2,
 .rail-card h2 {
   margin: 0;
-  font-size: 1rem;
+  font-size: 0.9375rem;
   font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
 .composer-note,
 .report-note {
   margin: 0.5rem 0 0;
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   line-height: 1.5;
   color: var(--text-secondary);
 }
@@ -386,8 +402,10 @@ textarea {
   border-radius: 0.875rem;
   background: #1d1d1f;
   color: white;
-  font-weight: 700;
-  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  padding: 0.6875rem 0.95rem;
 }
 
 .dark .run-button,
@@ -411,16 +429,17 @@ textarea {
 .report-body {
   min-height: 26rem;
   border-radius: 1rem;
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  border: 0;
   background: #f8f9fb;
   padding: 1.25rem;
   line-height: 1.6;
   overflow: auto;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.05);
 }
 
 .dark .report-body {
   background: #11151d;
-  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07);
 }
 
 .workspace-rail {
@@ -437,14 +456,15 @@ textarea {
 
 .metric-card {
   border-radius: 1rem;
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  border: 0;
   background: #f8f9fb;
   padding: 0.875rem;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.05);
 }
 
 .dark .metric-card {
   background: #11151d;
-  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07);
 }
 
 .metric-card strong,
@@ -453,15 +473,16 @@ textarea {
 }
 
 .metric-card strong {
-  font-size: 1.375rem;
-  font-weight: 700;
+  font-size: 1.125rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
 }
 
 .metric-card span {
   margin-top: 0.25rem;
-  font-size: 0.6875rem;
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--text-secondary);
 }
@@ -476,25 +497,29 @@ textarea {
 
 .stack-list li {
   border-radius: 1rem;
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  border: 0;
   background: #f8f9fb;
   padding: 0.875rem;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.05);
 }
 
 .dark .stack-list li {
   background: #11151d;
-  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07);
 }
 
 .stack-list li strong {
   display: block;
-  font-weight: 700;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
 .stack-list li span,
 .stack-list li small {
   display: block;
   margin-top: 0.35rem;
+  font-size: 0.8125rem;
   color: var(--text-secondary);
   line-height: 1.5;
   white-space: pre-wrap;
@@ -681,7 +706,7 @@ pre {
   }
 
   .shell-brand {
-    margin-bottom: 2rem;
+    margin-bottom: 2.15rem;
   }
 
   .shell-nav {
@@ -701,6 +726,7 @@ pre {
     padding-right: 1.5rem;
   }
 
+  .shell-brand-copy,
   .shell-brand-name,
   .shell-nav-label,
   .shell-nav-text {
@@ -713,6 +739,14 @@ pre {
     padding-right: 1rem;
     padding-top: 0.625rem;
     padding-bottom: 0.625rem;
+  }
+
+  .shell-brand-copy {
+    display: block;
+  }
+
+  .shell-brand-name {
+    display: block;
   }
 
   .shell-nav-item {
