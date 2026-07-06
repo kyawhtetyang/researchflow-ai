@@ -38,9 +38,25 @@ app.include_router(capabilities_router, prefix="/api/capabilities", tags=["capab
 if FRONTEND_DIR.exists():
     app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
 
+
+def _frontend_asset(path: str) -> FileResponse:
+    return FileResponse(FRONTEND_DIR / path)
+
 @app.get("/health")
 def healthcheck():
     return {"status": "ok", "app": "ResearchFlow AI", "version": "1.0.0"}
+
+@app.get("/styles.css", response_class=FileResponse)
+def frontend_styles():
+    return _frontend_asset("styles.css")
+
+@app.get("/app.js", response_class=FileResponse)
+def frontend_script():
+    return _frontend_asset("app.js")
+
+@app.get("/profile-photo.png", response_class=FileResponse)
+def frontend_profile_photo():
+    return _frontend_asset("profile-photo.png")
 
 @app.get("/", response_class=FileResponse)
 def frontend():

@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ResearchFlow AI</title>
-    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./styles.css?v=20260706b" />
     <script>
       window.RESEARCHFLOW_API_BASE =
         window.RESEARCHFLOW_API_BASE ||
@@ -85,7 +85,11 @@
                 </div>
                 <label class="sr-only" for="query">Research brief</label>
                 <textarea id="query" rows="4">What AI Engineer project should I build after a production RAG assistant?</textarea>
-                <div class="composer-actions">
+                <div class="composer-footer">
+                  <div class="composer-status" aria-live="polite">
+                    <span id="run-state-badge" class="status-pill status-pill-ready">Ready</span>
+                    <span id="run-state-text" class="composer-status-text">Waiting for a new research brief.</span>
+                  </div>
                   <button id="run" type="button" class="run-button">Run Research</button>
                 </div>
               </div>
@@ -150,6 +154,6 @@
         </div>
       </nav>
     </div>
-    <script src="./app.js"></script>
+    <script src="./app.js?v=20260706b"></script>
   </body>
 </html>
