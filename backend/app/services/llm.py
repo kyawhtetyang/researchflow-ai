@@ -85,6 +85,12 @@ def _run_gemini(system_prompt: str, user_prompt: str) -> str:
             body = json.loads(response.read().decode("utf-8"))
     except HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="ignore")
+        normalized_detail = detail.lower()
+        if exc.code == 429 or "quota exceeded" in normalized_detail or "resource_exhausted" in normalized_detail:
+            raise GenerationError(
+                "Gemini quota exceeded. Please wait and retry, or switch to another key/provider.",
+                detail or str(exc),
+            ) from exc
         raise GenerationError(
             "Gemini request failed while generating the research workflow output.",
             detail or str(exc),
