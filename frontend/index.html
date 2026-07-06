@@ -4,12 +4,16 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ResearchFlow AI</title>
-    <link rel="stylesheet" href="./styles.css?v=20260706b" />
+    <link rel="stylesheet" href="./styles.css?v=20260706c" />
     <script>
+      const localhostHosts = new Set(["127.0.0.1", "localhost"]);
+      const defaultApiBase = localhostHosts.has(window.location.hostname)
+        ? window.location.origin
+        : "https://researchflow-ai-8d4p.onrender.com";
       window.RESEARCHFLOW_API_BASE =
         window.RESEARCHFLOW_API_BASE ||
         new URLSearchParams(window.location.search).get("api_base") ||
-        "http://127.0.0.1:8000";
+        defaultApiBase;
     </script>
   </head>
   <body>
@@ -154,6 +158,6 @@
         </div>
       </nav>
     </div>
-    <script src="./app.js?v=20260706b"></script>
+    <script src="./app.js?v=20260706c"></script>
   </body>
 </html>
