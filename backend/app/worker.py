@@ -13,7 +13,7 @@ def process_one() -> bool:
     try:
         job = (
             db.query(ResearchJob)
-            .filter(ResearchJob.status == "pending")
+            .filter(ResearchJob.status.in_(("queued", "pending")))
             .order_by(ResearchJob.created_at.asc())
             .first()
         )

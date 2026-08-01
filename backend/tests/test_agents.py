@@ -3,6 +3,9 @@ from app.agents.report_agent import generate_report
 from app.agents.search_agent import search_sources
 from app.agents.summarizer_agent import summarize_findings
 from app.api.capabilities import capabilities
+from app.api.research import _chat_status
+from app.services import llm
+from app.schemas import ResearchJobCreate
 
 
 def test_research_agents_generate_a_source_backed_report(monkeypatch):
@@ -93,5 +96,27 @@ def test_capabilities_expose_release_1_0_0():
     assert "Tavily web search" in payload["core"]["workflow"]
     assert "stored job history" in payload["core"]["frontend"]
     assert payload["agents"]["openai_agents_sdk"]["framework"] == "OpenAI Agents SDK"
+
+
+def test_research_api_is_async_first_and_chat_status_friendly():
+    payload = ResearchJobCreate(query="What should ResearchFlow investigate next?")
+
+    assert payload.run_now is False
+    assert _chat_status("pending") == "queued"
+    assert _chat_status("queued") == "queued"
+    assert _chat_status("in_progress") == "thinking"
+    assert _chat_status("completed") == "completed"
+    assert _chat_status("failed") == "failed"
+
+
+def test_llm_provider_order_supports_gemini_and_openai_compatible_fallback(monkeypatch):
+    monkeypatch.setattr(llm.settings, "llm_provider", "gemini")
+    assert llm._provider_order() == ["gemini", "openai_compatible"]
+
+    monkeypatch.setattr(llm.settings, "llm_provider", "openai_compatible")
+    assert llm._provider_order() == ["openai_compatible", "gemini"]
+
+    monkeypatch.setattr(llm.settings, "llm_provider", "auto")
+    assert llm._provider_order() == ["gemini", "openai_compatible"]
 
 #### alembic.ini

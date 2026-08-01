@@ -1,30 +1,39 @@
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from pathlib import Path
+
 from app.api.capabilities import router as capabilities_router
 from app.api.eval import router as eval_router
 from app.api.jobs import router as jobs_router
 from app.api.reports import router as reports_router
 from app.api.research import router as research_router
+from app.config import settings
 from app.db import Base, engine
 from app import models  # noqa: F401
 
 app = FastAPI(title="ResearchFlow AI API", version="1.0.0")
 
 _resolved_main = Path(__file__).resolve()
-_frontend_candidates = [_resolved_main.parents[1] / "frontend"]
-if len(_resolved_main.parents) > 3:
-    _frontend_candidates.append(_resolved_main.parents[3] / "frontend")
-FRONTEND_DIR = next((path for path in _frontend_candidates if path.exists()), _frontend_candidates[0])
+_frontend_source_candidates = [
+    _resolved_main.parents[1] / "frontend",
+    _resolved_main.parents[2] / "frontend" if len(_resolved_main.parents) > 2 else None,
+]
+_frontend_source_dir = next(
+    (path for path in _frontend_source_candidates if path is not None and path.exists()),
+    _resolved_main.parents[1] / "frontend",
+)
+_frontend_dist_dir = _frontend_source_dir / "dist"
+_frontend_assets_dir = _frontend_dist_dir / "assets"
 
 Base.metadata.create_all(bind=engine)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=settings.cors_origins,
+    allow_credentials=settings.cors_origins != ["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -35,29 +44,17 @@ app.include_router(reports_router, prefix="/api/reports", tags=["reports"])
 app.include_router(eval_router, prefix="/api/eval", tags=["eval"])
 app.include_router(capabilities_router, prefix="/api/capabilities", tags=["capabilities"])
 
-if FRONTEND_DIR.exists():
-    app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
+if _frontend_assets_dir.exists():
+    app.mount("/assets", StaticFiles(directory=_frontend_assets_dir), name="assets")
 
-
-def _frontend_asset(path: str) -> FileResponse:
-    return FileResponse(FRONTEND_DIR / path)
 
 @app.get("/health")
 def healthcheck():
     return {"status": "ok", "app": "ResearchFlow AI", "version": "1.0.0"}
 
-@app.get("/styles.css", response_class=FileResponse)
-def frontend_styles():
-    return _frontend_asset("styles.css")
-
-@app.get("/app.js", response_class=FileResponse)
-def frontend_script():
-    return _frontend_asset("app.js")
-
-@app.get("/profile-photo.png", response_class=FileResponse)
-def frontend_profile_photo():
-    return _frontend_asset("profile-photo.png")
 
 @app.get("/", response_class=FileResponse)
 def frontend():
-    return FileResponse(FRONTEND_DIR / "index.html")
+    if _frontend_dist_dir.exists():
+        return FileResponse(_frontend_dist_dir / "index.html")
+    return FileResponse(_frontend_source_dir / "index.html")

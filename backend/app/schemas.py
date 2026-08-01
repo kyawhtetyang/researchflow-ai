@@ -1,12 +1,14 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional, List
 from datetime import datetime
 
 class ResearchJobCreate(BaseModel):
     query: str = Field(..., min_length=3)
-    run_now: bool = True
+    run_now: bool = False
 
 class ResearchJobResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     query: str
     status: str
@@ -15,10 +17,9 @@ class ResearchJobResponse(BaseModel):
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
-
 class ResearchStepResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     job_id: int
     step_order: int
@@ -28,10 +29,9 @@ class ResearchStepResponse(BaseModel):
     output: str
     created_at: datetime
 
-    class Config:
-        from_attributes = True
-
 class SourceResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     job_id: int
     title: str
@@ -41,17 +41,13 @@ class SourceResponse(BaseModel):
     score: Optional[float] = None
     quality_score: Optional[float] = None
 
-    class Config:
-        from_attributes = True
-
 class ReportResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     job_id: int
     markdown: str
     created_at: datetime
-
-    class Config:
-        from_attributes = True
 
 class ResearchJobDetail(BaseModel):
     job: ResearchJobResponse
@@ -66,6 +62,27 @@ class ResearchJobSummary(BaseModel):
     source_count: int
     average_source_quality: float
     has_report: bool
+    readiness_score: float
+
+class ResearchChatSource(BaseModel):
+    title: str
+    url: str
+    snippet: Optional[str] = None
+    quality_score: Optional[float] = None
+
+class ResearchChatWorkflowStep(BaseModel):
+    label: str
+    status: str
+    output: str
+
+class ResearchChatResponse(BaseModel):
+    job_id: int
+    query: str
+    status: str
+    answer: str
+    error: Optional[str] = None
+    sources: List[ResearchChatSource]
+    workflow: List[ResearchChatWorkflowStep]
     readiness_score: float
 
 class EvalRunResponse(BaseModel):

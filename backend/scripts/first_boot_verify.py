@@ -47,7 +47,7 @@ def main() -> int:
 
     wait_for_api(args.base_url, args.timeout_sec)
     frontend_html = request_text(args.base_url, "/")
-    if "ResearchFlow AI" not in frontend_html or "Run Research" not in frontend_html:
+    if "ResearchFlow AI" not in frontend_html:
         raise RuntimeError("frontend did not render expected ResearchFlow AI page")
 
     created = request_json(
@@ -57,6 +57,7 @@ def main() -> int:
         {"query": "What AI Engineer project should follow a production RAG assistant?", "run_now": True},
     )
     detail = request_json(args.base_url, "GET", f"/api/research/{created['id']}")
+    chat = request_json(args.base_url, "GET", f"/api/research/{created['id']}/chat")
     summary = request_json(args.base_url, "GET", f"/api/research/{created['id']}/summary")
     eval_run = request_json(args.base_url, "POST", "/api/eval/run")
 
@@ -68,6 +69,8 @@ def main() -> int:
         raise RuntimeError("expected at least 5 cited sources")
     if "ResearchFlow AI" not in detail["report"]["markdown"]:
         raise RuntimeError("report did not include expected project framing")
+    if chat["status"] != "completed" or not chat["answer"]:
+        raise RuntimeError(f"chat endpoint did not return a completed answer: {chat}")
     if summary["readiness_score"] < 1.0:
         raise RuntimeError(f"readiness score too low: {summary}")
     if eval_run["average_readiness_score"] <= 0:
