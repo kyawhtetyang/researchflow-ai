@@ -308,7 +308,7 @@ const ResearchFlowApp: React.FC = () => {
 
   const chatToMessage = (chat: ResearchChatResponse): Partial<ChatMessage> => {
     const thinkingLines = [
-      chat.status === 'queued' ? 'Queued research job and waiting for the worker.' : null,
+      chat.status === 'queued' ? 'Research job accepted and waiting for execution to begin.' : null,
       chat.status === 'thinking' ? 'Planning, gathering sources, analyzing evidence, and preparing the report.' : null,
       chat.workflow.length > 0 ? `Recorded ${chat.workflow.length} workflow step${chat.workflow.length === 1 ? '' : 's'}.` : null,
       chat.sources.length > 0 ? `Collected ${chat.sources.length} source${chat.sources.length === 1 ? '' : 's'}.` : null,
@@ -382,8 +382,8 @@ ${quickReplyForPrompt(trimmedQuestion)}`,
         id: assistantMessageId,
         role: 'assistant',
         text: `${THINKING_MARKER}
-- Creating an async research job.
-- Waiting for the worker to begin.
+- Creating a research job.
+- Waiting for execution to begin.
 
 ${ANSWER_MARKER}
 ResearchFlow is starting the research workflow...`,

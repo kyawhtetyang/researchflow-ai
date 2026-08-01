@@ -1,7 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.db import get_db
-from app.agents.orchestrator import run_research_job
+from app.agents.orchestrator import run_research_job_by_id
 from app.schemas import ResearchChatResponse, ResearchJobCreate, ResearchJobDetail, ResearchJobResponse, ResearchJobSummary
 from app.models.report import Report
 from app.models.research_job import ResearchJob
@@ -52,14 +52,18 @@ def list_research_jobs(db: Session = Depends(get_db)):
     return db.query(ResearchJob).order_by(ResearchJob.created_at.desc()).limit(25).all()
 
 @router.post("/", response_model=ResearchJobResponse)
-def create_research_job(job_in: ResearchJobCreate, db: Session = Depends(get_db)):
+def create_research_job(
+    job_in: ResearchJobCreate,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
     job = ResearchJob(query=job_in.query, status="queued")
     db.add(job)
     db.commit()
     db.refresh(job)
 
     if job_in.run_now:
-        job = run_research_job(db, job)
+        background_tasks.add_task(run_research_job_by_id, job.id)
 
     return job
 
@@ -80,7 +84,7 @@ def get_research_chat(job_id: int, db: Session = Depends(get_db)):
     elif status == "thinking":
         answer = "ResearchFlow is planning, gathering sources, analyzing evidence, and preparing the report."
     else:
-        answer = "ResearchFlow queued the research job and will start processing shortly."
+        answer = "ResearchFlow accepted the research job and will start processing shortly."
 
     return {
         "job_id": job.id,

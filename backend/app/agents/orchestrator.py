@@ -12,6 +12,7 @@ from app.models.report import Report
 from app.models.research_job import ResearchJob
 from app.models.research_step import ResearchStep
 from app.models.source import Source
+from app.db import SessionLocal
 from app.services.citations import score_source_quality
 from app.services.errors import ResearchFlowError
 
@@ -95,4 +96,15 @@ def run_research_job(db: Session, job: ResearchJob) -> ResearchJob:
         db.refresh(job)
         return job
 
-###### planner.py
+
+def run_research_job_by_id(job_id: int) -> None:
+    db = SessionLocal()
+    try:
+        job = db.query(ResearchJob).filter(ResearchJob.id == job_id).first()
+        if job is None:
+            return
+        if (job.status or "").strip().lower() not in {"queued", "pending"}:
+            return
+        run_research_job(db, job)
+    finally:
+        db.close()

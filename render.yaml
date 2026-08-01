@@ -6,11 +6,3 @@ services:
     branch: main
     dockerfilePath: Dockerfile
     autoDeploy: true
-  - type: worker
-    name: researchflow-ai-worker
-    env: docker
-    plan: free
-    branch: main
-    dockerfilePath: Dockerfile
-    dockerCommand: python3 -m app.worker
-    autoDeploy: true
