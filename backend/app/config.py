@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     tavily_api_key: str = ""
     model_name: str = "gpt-4.1-mini"
     search_provider: str = "tavily"
-    search_max_results: int = 5
+    search_max_results: int = 3
     tavily_search_depth: str = "advanced"
     provider_timeout_seconds: float = 45.0
     worker_poll_interval: float = 2.0

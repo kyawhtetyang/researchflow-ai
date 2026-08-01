@@ -110,7 +110,7 @@ const renderListItemContent = (item: string) => {
   }
 
   const [, title, remainder] = titleMatch;
-  const body = remainder.trim();
+  const body = remainder.replace(/^:\s*/, '').trim();
 
   return (
     <div className="answer-list-item">
@@ -256,8 +256,13 @@ const ResearchFlowApp: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [question, setQuestion] = useState('');
   const [asking, setAsking] = useState(false);
+  const chatWindowRef = useRef<HTMLElement | null>(null);
+  const composerWrapRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
+  const messageRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const pendingScrollMessageIdRef = useRef<string | null>(null);
+  const anchoredAssistantMessageIdRef = useRef<string | null>(null);
 
   const hasMessages = messages.length > 0;
   const isDark = theme === 'dark';
@@ -276,9 +281,26 @@ const ResearchFlowApp: React.FC = () => {
 
   useEffect(() => {
     requestAnimationFrame(() => {
+      const pendingId = pendingScrollMessageIdRef.current;
+      const anchorId = pendingId || anchoredAssistantMessageIdRef.current;
+      if (anchorId) {
+        const target = messageRefs.current[anchorId];
+        const container = chatWindowRef.current;
+        if (target && container) {
+          const composerHeight = composerWrapRef.current?.offsetHeight ?? 0;
+          const topOffset = Math.max(220, Math.round(container.clientHeight * 0.4), composerHeight + 72);
+          const targetTop = target.offsetTop - topOffset;
+          container.scrollTop = Math.max(targetTop, 0);
+          if (pendingId) {
+            pendingScrollMessageIdRef.current = null;
+            anchoredAssistantMessageIdRef.current = anchorId;
+          }
+          return;
+        }
+      }
       messagesEndRef.current?.scrollIntoView({ block: 'end' });
     });
-  }, [messages, asking]);
+  }, [messages]);
 
   const addMessage = (message: Omit<ChatMessage, 'id'>) => {
     setMessages((current) => [...current, { ...message, id: createId() }]);
@@ -342,6 +364,7 @@ ${answer}`,
       updateMessage(assistantMessageId, chatToMessage(chat));
 
       if (chat.status === 'completed' || chat.status === 'failed') {
+        anchoredAssistantMessageIdRef.current = null;
         return;
       }
 
@@ -355,6 +378,7 @@ ${answer}`,
 ${ANSWER_MARKER}
 ResearchFlow is still working. Please try again in a moment or refresh the job later.`,
     });
+    anchoredAssistantMessageIdRef.current = null;
   };
 
   const askQuestion = async () => {
@@ -365,17 +389,26 @@ ResearchFlow is still working. Please try again in a moment or refresh the job l
     addMessage({ role: 'user', text: trimmedQuestion });
 
     if (isQuickReplyPrompt(trimmedQuestion)) {
-      addMessage({
-        role: 'assistant',
-        text: `${ANSWER_MARKER}
+      const assistantMessageId = createId();
+      pendingScrollMessageIdRef.current = assistantMessageId;
+      anchoredAssistantMessageIdRef.current = null;
+      setMessages((current) => [
+        ...current,
+        {
+          id: assistantMessageId,
+          role: 'assistant',
+          text: `${ANSWER_MARKER}
 ${quickReplyForPrompt(trimmedQuestion)}`,
-      });
+        },
+      ]);
       return;
     }
 
     setAsking(true);
 
     const assistantMessageId = createId();
+    pendingScrollMessageIdRef.current = assistantMessageId;
+    anchoredAssistantMessageIdRef.current = null;
     setMessages((current) => [
       ...current,
       {
@@ -397,6 +430,7 @@ ResearchFlow is starting the research workflow...`,
       });
       await pollResearchJob(job.id, assistantMessageId);
     } catch (error) {
+      anchoredAssistantMessageIdRef.current = null;
       updateMessage(assistantMessageId, {
         text: `${THINKING_MARKER}
 - The frontend could not complete the backend request.
@@ -405,6 +439,7 @@ ${ANSWER_MARKER}
 ${error instanceof Error ? error.message : 'ResearchFlow could not reach the backend.'}`,
       });
     } finally {
+      anchoredAssistantMessageIdRef.current = null;
       setAsking(false);
     }
   };
@@ -492,7 +527,11 @@ ${error instanceof Error ? error.message : 'ResearchFlow could not reach the bac
       </header>
 
       <main className={`chat-shell ${hasMessages ? 'chat-shell-active' : 'chat-shell-empty'}`}>
-        <section className="chat-window" aria-label="ResearchFlow chat">
+        <section
+          className="chat-window"
+          aria-label="ResearchFlow chat"
+          ref={chatWindowRef}
+        >
           <div className="message-stack">
             {!hasMessages && (
               <div className="empty-state">
@@ -502,7 +541,13 @@ ${error instanceof Error ? error.message : 'ResearchFlow could not reach the bac
             )}
 
             {messages.map((message) => (
-              <div className={`message-row message-row-${message.role}`} key={message.id}>
+              <div
+                className={`message-row message-row-${message.role}`}
+                key={message.id}
+                ref={(node) => {
+                  messageRefs.current[message.id] = node;
+                }}
+              >
                 <div className={`message-bubble message-bubble-${message.role}`}>
                   <div className="message-text">{message.role === 'assistant' ? renderMessageText(message.text) : message.text}</div>
                   {message.sources && message.sources.length > 0 && (
@@ -512,7 +557,7 @@ ${error instanceof Error ? error.message : 'ResearchFlow could not reach the bac
                         <details className="detail-card" key={source.label}>
                           <summary>
                             <span>{source.label}</span>
-                            <span>note</span>
+                            <span>source</span>
                           </summary>
                           <div className="source-card-body">
                             {source.meta ? <div className="source-meta">{source.meta}</div> : null}
@@ -539,7 +584,7 @@ ${error instanceof Error ? error.message : 'ResearchFlow could not reach the bac
                         <details className="detail-card" key={step.label}>
                           <summary>
                             <span>{step.label}</span>
-                            <span>step</span>
+                            <span>agent</span>
                           </summary>
                           <div className="workflow-card-body">{renderWorkflowStep(step.label, step.text)}</div>
                         </details>
@@ -566,7 +611,10 @@ ${error instanceof Error ? error.message : 'ResearchFlow could not reach the bac
           </div>
         </section>
 
-        <div className={`composer-wrap ${hasMessages ? 'composer-wrap-bottom' : 'composer-wrap-center'}`}>
+        <div
+          className={`composer-wrap ${hasMessages ? 'composer-wrap-bottom' : 'composer-wrap-center'}`}
+          ref={composerWrapRef}
+        >
           <div className="composer">
             <textarea
               ref={inputRef}
