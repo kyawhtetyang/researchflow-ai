@@ -51,7 +51,7 @@ type ResearchChatResponse = {
 const ANSWER_MARKER = '## Answer';
 const THINKING_MARKER = '## Thinking';
 const DEFAULT_THEME: Theme = 'dark';
-const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+const PROD_API_BASE = 'https://researchflow-ai-8d4p.onrender.com';
 const POLL_INTERVAL_MS = 1800;
 const MAX_POLL_ATTEMPTS = 80;
 const createId = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -74,6 +74,20 @@ const CASUAL_PATTERNS = new Set([
 const readStoredTheme = (): Theme => {
   const stored = window.localStorage.getItem('theme');
   return stored === 'light' || stored === 'dark' ? stored : DEFAULT_THEME;
+};
+
+const resolveApiBase = () => {
+  const configured = import.meta.env.VITE_API_BASE_URL;
+  if (configured) {
+    return configured;
+  }
+
+  if (typeof window === 'undefined') {
+    return '';
+  }
+
+  const localhostHosts = new Set(['127.0.0.1', 'localhost']);
+  return localhostHosts.has(window.location.hostname) ? '' : PROD_API_BASE;
 };
 
 const renderInlineMarkdown = (text: string) => {
@@ -237,6 +251,7 @@ const quickReplyForPrompt = (value: string) => {
 };
 
 const ResearchFlowApp: React.FC = () => {
+  const apiBase = resolveApiBase();
   const [theme, setTheme] = useState<Theme>(readStoredTheme);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [question, setQuestion] = useState('');
@@ -276,7 +291,7 @@ const ResearchFlowApp: React.FC = () => {
   };
 
   const requestJson = async <T,>(path: string, options?: RequestInit): Promise<T> => {
-    const response = await fetch(`${API_BASE}${path}`, {
+    const response = await fetch(`${apiBase}${path}`, {
       ...options,
       headers: {
         'Content-Type': 'application/json',
