@@ -104,20 +104,7 @@ const renderInlineMarkdown = (text: string) => {
 
 const renderListItemContent = (item: string) => {
   const cleaned = item.trim();
-  const titleMatch = cleaned.match(/^\*\*(.*?)\*\*(.*)$/);
-  if (!titleMatch) {
-    return <span>{renderInlineMarkdown(cleaned)}</span>;
-  }
-
-  const [, title, remainder] = titleMatch;
-  const body = remainder.trim();
-
-  return (
-    <div className="answer-list-item">
-      <div className="answer-list-lead">{title}</div>
-      {body ? <div className="answer-list-body">{renderInlineMarkdown(body)}</div> : null}
-    </div>
-  );
+  return <span>{renderInlineMarkdown(cleaned)}</span>;
 };
 
 const stripInlineSourcesSection = (text: string) => {
@@ -125,6 +112,19 @@ const stripInlineSourcesSection = (text: string) => {
     .replace(/\n## Sources[\s\S]*$/i, '')
     .replace(/\nSources\s+1\.[\s\S]*$/i, '')
     .trim();
+};
+
+const normalizeAnswerSections = (text: string) => {
+  const cleaned = text.replace(/\*\*/g, '').trim();
+  const sectionTitles = ['Executive Summary', 'Research Plan', 'Findings', 'Recommendations'];
+
+  const withHeadings = sectionTitles.reduce((current, title) => {
+    const escapedTitle = title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const boundaryPattern = new RegExp(`(^|\\n)${escapedTitle}\\s+`, 'g');
+    return current.replace(boundaryPattern, `$1## ${title}\n`);
+  }, cleaned);
+
+  return withHeadings.replace(/\n{3,}/g, '\n\n').trim();
 };
 
 const domainFromUrl = (value: string) => {
@@ -437,7 +437,8 @@ ${error instanceof Error ? error.message : 'ResearchFlow could not reach the bac
   };
 
   const renderAnswer = (text: string) => {
-    const blocks = text.split(/\n{2,}/).map((block) => block.trim()).filter(Boolean);
+    const normalizedText = normalizeAnswerSections(text);
+    const blocks = normalizedText.split(/\n{2,}/).map((block) => block.trim()).filter(Boolean);
 
     return blocks.map((block, index) => {
       if (block.startsWith('# ')) {
