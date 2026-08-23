@@ -43,7 +43,7 @@ open http://127.0.0.1:8000/
 open http://127.0.0.1:8000/docs
 ```
 
-Docker Compose applies `alembic upgrade head` before starting the API. The worker starts after the API and database are available.
+Docker Compose waits for PostgreSQL health, runs `alembic upgrade head` in a one-shot migration service, and starts both the API and worker only after migrations succeed.
 
 ## Frontend Development
 
@@ -63,7 +63,9 @@ cd frontend && npm run check
 python3 backend/scripts/first_boot_verify.py http://127.0.0.1:8000
 ```
 
-CI also validates Alembic migrations, backend tests, frontend lint/tests/build, and the production Docker image.
+The first-boot verification requires configured LLM and search provider credentials because it submits a real asynchronous research job and waits for the worker to complete it.
+
+CI validates Alembic migrations, backend tests, frontend lint/tests/build, the production Docker image, Compose service builds, and the Compose migration container.
 
 ## API
 - `GET /health`
