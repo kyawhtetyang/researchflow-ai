@@ -9,13 +9,33 @@ Plan -> Search -> Analyze -> Report -> Store
 ResearchFlow AI is the next step after `RAG Knowledge Assistant`. The earlier RAG project proves retrieval QA. ResearchFlow AI proves multi-step research orchestration with stored jobs, sources, workflow steps, and cited reports.
 
 ## Current Release
-- App/API release: `1.0.0`
-- Historical snapshot label: `v3`
-- Current stack: FastAPI + PostgreSQL/pgvector + worker + React/Vite frontend
-- Live provider path: Gemini with OpenAI-compatible fallback support
-- Live search path: Tavily web search
+- Release line: `1.1.0` production-hardening candidate
+- Stable predecessor: `1.0.0`
+- Stack: FastAPI + PostgreSQL/pgvector + background worker + React/Vite frontend
+- LLM path: Gemini with OpenAI-compatible fallback support
+- Search path: Tavily web search
+- Schema ownership: Alembic migrations
+
+## Architecture
+
+```text
+React/Vite
+    |
+    v
+FastAPI API ----> PostgreSQL / pgvector
+    |                    ^
+    | queue job          |
+    v                    |
+Background worker -------+
+    |
+    v
+Plan -> Search -> Analyze -> Report
+```
+
+New research requests are persisted as queued jobs. The worker claims queued jobs, records workflow steps and sources, and stores the final cited report.
 
 ## Setup
+
 ```bash
 cp .env.example .env
 docker compose up -d --build
@@ -23,23 +43,27 @@ open http://127.0.0.1:8000/
 open http://127.0.0.1:8000/docs
 ```
 
+Docker Compose applies `alembic upgrade head` before starting the API. The worker starts after the API and database are available.
+
 ## Frontend Development
+
 ```bash
 cd frontend
-npm install
+npm ci
 npm run dev -- --host 127.0.0.1
 ```
 
-Notes:
-- Vite defaults to port `3001`; if that port is busy it will choose the next available port.
-- Local Vite development proxies `/api` to `http://127.0.0.1:8000`.
-- FastAPI serves the built Vite app from `frontend/dist/` when that build exists.
+Local Vite development proxies `/api` to `http://127.0.0.1:8000`. FastAPI serves the built Vite app from `frontend/dist/` when that build exists.
 
 ## Verify
+
 ```bash
 docker compose exec -T -e PYTHONPATH=/app api pytest -q
+cd frontend && npm run check
 python3 backend/scripts/first_boot_verify.py http://127.0.0.1:8000
 ```
+
+CI also validates Alembic migrations, backend tests, frontend lint/tests/build, and the production Docker image.
 
 ## API
 - `GET /health`
@@ -54,12 +78,18 @@ python3 backend/scripts/first_boot_verify.py http://127.0.0.1:8000
 
 ## Runtime Notes
 - The backend is async-first: new research jobs are created as `queued` and processed by the worker.
-- The frontend polls the chat-shaped endpoint at `GET /api/research/{job_id}/chat`.
-- If provider env values change, recreate the API and worker containers so Docker reloads the environment.
+- Workers use database row locking with `SKIP LOCKED` so multiple workers do not claim the same queued job.
+- The worker handles SIGTERM/SIGINT and stops claiming new work while allowing the active call to return before exit.
+- The frontend polls `GET /api/research/{job_id}/chat`.
+- Production requires the web and worker services to share the same `DATABASE_URL` and provider credentials.
+- Do not use `Base.metadata.create_all()` for production schema changes; add and apply Alembic migrations.
 
-## Version Roadmap
-- `v0`: production backend scaffold
-- `v0.1`: basic custom research workflow
-- `v1`: recruiter-ready standalone release
-- `v2`: platform-level contracts for evals, adapters, and portfolio integration
-- `v3`: implemented research-engine milestone archived as the `1.0.0` historical snapshot label
+## Release Convention
+
+ResearchFlow AI uses Semantic Versioning:
+
+```text
+vMAJOR.MINOR.PATCH
+```
+
+A release is complete only after CI, clean-checkout validation, migration validation, and deployment smoke checks pass for the exact commit that receives the Git tag.
