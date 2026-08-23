@@ -11,10 +11,8 @@ from app.api.jobs import router as jobs_router
 from app.api.reports import router as reports_router
 from app.api.research import router as research_router
 from app.config import settings
-from app.db import Base, engine
-from app import models  # noqa: F401
 
-app = FastAPI(title="ResearchFlow AI API", version="1.0.0")
+app = FastAPI(title="ResearchFlow AI API", version=settings.app_version)
 
 _resolved_main = Path(__file__).resolve()
 _frontend_source_candidates = [
@@ -27,8 +25,6 @@ _frontend_source_dir = next(
 )
 _frontend_dist_dir = _frontend_source_dir / "dist"
 _frontend_assets_dir = _frontend_dist_dir / "assets"
-
-Base.metadata.create_all(bind=engine)
 
 app.add_middleware(
     CORSMiddleware,
@@ -50,7 +46,7 @@ if _frontend_assets_dir.exists():
 
 @app.get("/health")
 def healthcheck():
-    return {"status": "ok", "app": "ResearchFlow AI", "version": "1.0.0"}
+    return {"status": "ok", "app": "ResearchFlow AI", "version": settings.app_version}
 
 
 @app.get("/", response_class=FileResponse)
