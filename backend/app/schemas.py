@@ -4,7 +4,7 @@ from datetime import datetime
 
 class ResearchJobCreate(BaseModel):
     query: str = Field(..., min_length=3)
-    run_now: bool = True
+    run_now: bool = False
 
 class ResearchJobResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
