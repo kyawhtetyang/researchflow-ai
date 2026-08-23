@@ -71,3 +71,14 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build production image
         run: docker build -t researchflow-ai:ci .
+      - name: Validate Compose configuration
+        run: docker compose config --quiet
+      - name: Build Compose services
+        run: docker compose build
+      - name: Verify migration container
+        run: |
+          docker compose up -d db
+          docker compose run --rm migrate
+      - name: Cleanup Compose services
+        if: always()
+        run: docker compose down -v --remove-orphans
