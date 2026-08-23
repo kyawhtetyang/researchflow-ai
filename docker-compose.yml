@@ -1,4 +1,17 @@
 services:
+  migrate:
+    build:
+      context: ./backend
+    environment:
+      - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-researchflow}
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+    command: alembic upgrade head
+    restart: "no"
+
   api:
     build:
       context: ./backend
@@ -22,12 +35,12 @@ services:
       - PROVIDER_TIMEOUT_SECONDS=${PROVIDER_TIMEOUT_SECONDS:-45}
       - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-*}
     depends_on:
-      db:
-        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     volumes:
       - ./backend:/app
       - ./frontend:/app/frontend:ro
-    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
   worker:
     build:
@@ -50,10 +63,8 @@ services:
       - PROVIDER_TIMEOUT_SECONDS=${PROVIDER_TIMEOUT_SECONDS:-45}
       - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-*}
     depends_on:
-      db:
-        condition: service_healthy
-      api:
-        condition: service_started
+      migrate:
+        condition: service_completed_successfully
     volumes:
       - ./backend:/app
     command: python3 -m app.worker
