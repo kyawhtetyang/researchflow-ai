@@ -2,6 +2,7 @@ from fastapi import APIRouter
 
 from app.agents.adapters import langchain_capability, langgraph_capability, llamaindex_capability
 from app.agents.openai_agents_runner import openai_agents_blueprint
+from app.config import settings
 from app.evals import evaluation_capability, tracing_capability
 from app.rag import embedding_capability, indexing_capability, retrieval_capability
 
@@ -11,10 +12,9 @@ router = APIRouter()
 @router.get("/")
 def capabilities() -> dict[str, object]:
     return {
-        "version": "1.0.0",
-        "release": "1.0.0",
-        "status": "complete",
-        "snapshot_line": "v3",
+        "version": settings.app_version,
+        "release": settings.app_version,
+        "status": "hardening",
         "core": {
             "backend": ["FastAPI", "PostgreSQL", "pgvector", "Docker", "SQLAlchemy", "Alembic"],
             "workflow": ["LLM planner", "Tavily web search", "LLM summarizer", "LLM report generation", "citations"],
@@ -37,5 +37,3 @@ def capabilities() -> dict[str, object]:
             "observability": tracing_capability(),
         },
     }
-
-###### eval.py
