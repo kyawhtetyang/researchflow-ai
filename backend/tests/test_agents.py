@@ -86,13 +86,13 @@ def test_research_agents_generate_a_source_backed_report(monkeypatch):
     assert "## Sources" in report
 
 
-def test_capabilities_expose_release_1_0_0():
+def test_capabilities_expose_current_semver_release():
     payload = capabilities()
 
-    assert payload["version"] == "1.0.0"
-    assert payload["release"] == "1.0.0"
-    assert payload["status"] == "complete"
-    assert payload["snapshot_line"] == "v3"
+    assert payload["version"] == "1.1.0"
+    assert payload["release"] == "1.1.0"
+    assert payload["status"] == "hardening"
+    assert "snapshot_line" not in payload
     assert "Tavily web search" in payload["core"]["workflow"]
     assert "stored job history" in payload["core"]["frontend"]
     assert payload["agents"]["openai_agents_sdk"]["framework"] == "OpenAI Agents SDK"
@@ -118,5 +118,3 @@ def test_llm_provider_order_supports_gemini_and_openai_compatible_fallback(monke
 
     monkeypatch.setattr(llm.settings, "llm_provider", "auto")
     assert llm._provider_order() == ["gemini", "openai_compatible"]
-
-#### alembic.ini
