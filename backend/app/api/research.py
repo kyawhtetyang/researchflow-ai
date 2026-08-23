@@ -51,6 +51,7 @@ def _get_research_parts(job_id: int, db: Session):
 def list_research_jobs(db: Session = Depends(get_db)):
     return db.query(ResearchJob).order_by(ResearchJob.created_at.desc()).limit(25).all()
 
+
 @router.post("/", response_model=ResearchJobResponse)
 def create_research_job(
     job_in: ResearchJobCreate,
@@ -66,6 +67,7 @@ def create_research_job(
         background_tasks.add_task(run_research_job_by_id, job.id)
 
     return job
+
 
 @router.get("/{job_id}", response_model=ResearchJobDetail)
 def get_research_job(job_id: int, db: Session = Depends(get_db)):
@@ -112,6 +114,7 @@ def get_research_chat(job_id: int, db: Session = Depends(get_db)):
         "readiness_score": _readiness_score(job, len(steps), len(sources), report is not None),
     }
 
+
 @router.get("/{job_id}/summary", response_model=ResearchJobSummary)
 def get_research_summary(job_id: int, db: Session = Depends(get_db)):
     job = db.query(ResearchJob).filter(ResearchJob.id == job_id).first()
@@ -132,5 +135,3 @@ def get_research_summary(job_id: int, db: Session = Depends(get_db)):
         has_report=report is not None,
         readiness_score=_readiness_score(job, step_count, source_count, report is not None),
     )
-
-### backend/app/evals
