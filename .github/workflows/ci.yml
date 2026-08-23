@@ -40,6 +40,8 @@ jobs:
         run: pip install -r backend/requirements.txt
       - name: Apply migrations
         working-directory: backend
+        env:
+          PYTHONPATH: .
         run: alembic upgrade head
       - name: Run backend tests
         working-directory: backend
