@@ -1,8 +1,46 @@
 services:
   - type: web
     name: researchflow-ai
-    env: docker
+    runtime: docker
     plan: free
     branch: main
-    dockerfilePath: Dockerfile
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    dockerCommand: /bin/sh -c 'set -e; alembic upgrade head; exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-10000}'
+    healthCheckPath: /health
     autoDeploy: true
+    envVars:
+      - key: APP_VERSION
+        value: 1.1.0
+      - key: DATABASE_URL
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: TAVILY_API_KEY
+        sync: false
+      - key: OPENAI_COMPATIBLE_API_KEY
+        sync: false
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+
+  - type: worker
+    name: researchflow-ai-worker
+    runtime: docker
+    plan: starter
+    branch: main
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    dockerCommand: /bin/sh -c 'exec python3 -m app.worker'
+    autoDeploy: true
+    maxShutdownDelaySeconds: 300
+    envVars:
+      - key: APP_VERSION
+        value: 1.1.0
+      - key: DATABASE_URL
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: TAVILY_API_KEY
+        sync: false
+      - key: OPENAI_COMPATIBLE_API_KEY
+        sync: false
