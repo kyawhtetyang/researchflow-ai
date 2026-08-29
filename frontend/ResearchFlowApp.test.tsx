@@ -6,7 +6,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import ResearchFlowApp from './ResearchFlowApp'
 
 beforeEach(() => {
-  window.localStorage.clear()
   vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
     callback(0)
     return 1
