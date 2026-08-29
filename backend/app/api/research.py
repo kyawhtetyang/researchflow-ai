@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.db import get_db
+from app.readiness import readiness_score
 from app.schemas import ResearchChatResponse, ResearchJobCreate, ResearchJobDetail, ResearchJobResponse, ResearchJobSummary
 from app.models.report import Report
 from app.models.research_job import ResearchJob
@@ -20,15 +21,6 @@ def _chat_status(status: str) -> str:
     if normalized in {"completed", "failed"}:
         return normalized
     return normalized or "queued"
-
-
-def _readiness_score(job: ResearchJob, step_count: int, source_count: int, has_report: bool) -> float:
-    readiness = 0.0
-    readiness += 0.25 if job.status == "completed" else 0
-    readiness += min(step_count / 4, 1.0) * 0.25
-    readiness += min(source_count / 5, 1.0) * 0.25
-    readiness += 0.25 if has_report else 0
-    return round(readiness, 3)
 
 
 def _get_research_parts(job_id: int, db: Session):
@@ -54,7 +46,6 @@ def list_research_jobs(db: Session = Depends(get_db)):
 
 @router.post("/", response_model=ResearchJobResponse, status_code=202)
 def create_research_job(job_in: ResearchJobCreate, db: Session = Depends(get_db)):
-    # The API only enqueues work. The dedicated worker is the sole executor.
     job = ResearchJob(query=job_in.query, status="queued")
     db.add(job)
     db.commit()
@@ -97,14 +88,10 @@ def get_research_chat(job_id: int, db: Session = Depends(get_db)):
             for source in sources
         ],
         "workflow": [
-            {
-                "label": step.agent_name,
-                "status": step.status,
-                "output": step.output,
-            }
+            {"label": step.agent_name, "status": step.status, "output": step.output}
             for step in steps
         ],
-        "readiness_score": _readiness_score(job, len(steps), len(sources), report is not None),
+        "readiness_score": readiness_score(job, len(steps), len(sources), report is not None),
     }
 
 
@@ -126,5 +113,5 @@ def get_research_summary(job_id: int, db: Session = Depends(get_db)):
         source_count=source_count,
         average_source_quality=round(avg_quality, 3),
         has_report=report is not None,
-        readiness_score=_readiness_score(job, step_count, source_count, report is not None),
+        readiness_score=readiness_score(job, step_count, source_count, report is not None),
     )
