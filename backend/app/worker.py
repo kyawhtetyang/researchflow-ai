@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import signal
+from datetime import datetime
 from threading import Event
 
 from app.workflow.orchestrator import run_research_job
@@ -15,18 +16,34 @@ def _request_shutdown(*_: object) -> None:
     _shutdown.set()
 
 
+def _claim_next_job(db):
+    job = (
+        db.query(ResearchJob)
+        .filter(ResearchJob.status == "queued")
+        .order_by(ResearchJob.created_at.asc())
+        .with_for_update(skip_locked=True)
+        .first()
+    )
+    if job is None:
+        db.rollback()
+        return None
+
+    # Claim ownership while the row lock is held, then commit the claim before
+    # running slow external LLM/search work. Other workers can only select jobs
+    # that remain in the queued state.
+    job.status = "in_progress"
+    job.started_at = datetime.utcnow()
+    job.error = None
+    db.commit()
+    db.refresh(job)
+    return job
+
+
 def process_one() -> bool:
     db = SessionLocal()
     try:
-        job = (
-            db.query(ResearchJob)
-            .filter(ResearchJob.status.in_(("queued", "pending")))
-            .order_by(ResearchJob.created_at.asc())
-            .with_for_update(skip_locked=True)
-            .first()
-        )
+        job = _claim_next_job(db)
         if job is None:
-            db.rollback()
             return False
 
         run_research_job(db, job)
