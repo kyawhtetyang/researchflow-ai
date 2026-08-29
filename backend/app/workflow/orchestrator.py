@@ -12,7 +12,6 @@ from app.models.report import Report
 from app.models.research_job import ResearchJob
 from app.models.research_step import ResearchStep
 from app.models.source import Source
-from app.db import SessionLocal
 from app.services.citations import score_source_quality
 from app.services.errors import ResearchFlowError
 
@@ -41,10 +40,9 @@ def _format_findings(findings: list[dict]) -> str:
 
 
 def run_research_job(db: Session, job: ResearchJob) -> ResearchJob:
-    job.status = "in_progress"
-    job.started_at = datetime.utcnow()
-    db.commit()
-    db.refresh(job)
+    """Execute a job that has already been atomically claimed by the worker."""
+    if (job.status or "").strip().lower() != "in_progress":
+        raise ValueError("research job must be claimed before workflow execution")
 
     try:
         plan = plan_research(job.query)
@@ -66,15 +64,15 @@ def run_research_job(db: Session, job: ResearchJob) -> ResearchJob:
             )
             db.add(source)
             sources.append(raw)
-        _add_step(db, job.id, 2, "search_agent", job.query, "\n".join(f"- {s['title']} ({s['url']})" for s in sources))
+        _add_step(db, job.id, 2, "researcher", job.query, "\n".join(f"- {s['title']} ({s['url']})" for s in sources))
 
         findings = summarize_findings(job.query, sources)
-        _add_step(db, job.id, 3, "analysis_agent", "\n".join(s["content"] for s in sources), _format_findings(findings))
+        _add_step(db, job.id, 3, "analyst", "\n".join(s["content"] for s in sources), _format_findings(findings))
 
         markdown = generate_report(job.query, plan, findings, sources)
         report = Report(job_id=job.id, markdown=markdown)
         db.add(report)
-        _add_step(db, job.id, 4, "report_agent", job.query, markdown)
+        _add_step(db, job.id, 4, "reporter", job.query, markdown)
 
         job.status = "completed"
         job.completed_at = datetime.utcnow()
@@ -82,6 +80,10 @@ def run_research_job(db: Session, job: ResearchJob) -> ResearchJob:
         db.refresh(job)
         return job
     except ResearchFlowError as exc:
+        db.rollback()
+        job = db.query(ResearchJob).filter(ResearchJob.id == job.id).first()
+        if job is None:
+            raise
         job.status = "failed"
         job.error = exc.user_message
         job.completed_at = datetime.utcnow()
@@ -89,22 +91,13 @@ def run_research_job(db: Session, job: ResearchJob) -> ResearchJob:
         db.refresh(job)
         return job
     except Exception:
+        db.rollback()
+        job = db.query(ResearchJob).filter(ResearchJob.id == job.id).first()
+        if job is None:
+            raise
         job.status = "failed"
         job.error = "Unexpected research workflow failure."
         job.completed_at = datetime.utcnow()
         db.commit()
         db.refresh(job)
         return job
-
-
-def run_research_job_by_id(job_id: int) -> None:
-    db = SessionLocal()
-    try:
-        job = db.query(ResearchJob).filter(ResearchJob.id == job_id).first()
-        if job is None:
-            return
-        if (job.status or "").strip().lower() not in {"queued", "pending"}:
-            return
-        run_research_job(db, job)
-    finally:
-        db.close()
