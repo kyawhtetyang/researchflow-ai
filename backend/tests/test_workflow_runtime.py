@@ -2,7 +2,7 @@ from app.models.report import Report
 from app.models.research_job import ResearchJob
 from app.models.research_step import ResearchStep
 from app.models.source import Source
-from app.services.errors import ResearchFlowError
+from app.services.errors import GenerationError
 from app.workflow import orchestrator
 
 
@@ -86,11 +86,8 @@ def test_known_workflow_failure_marks_job_failed_and_rolls_back_partial_artifact
     )
     monkeypatch.setattr(orchestrator, "score_source_quality", lambda _: 0.5)
 
-    class ExpectedFailure(ResearchFlowError):
-        user_message = "Analysis provider unavailable."
-
     def fail_analysis(*_):
-        raise ExpectedFailure()
+        raise GenerationError("Analysis provider unavailable.")
 
     monkeypatch.setattr(orchestrator, "summarize_findings", fail_analysis)
 
