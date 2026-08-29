@@ -1,7 +1,7 @@
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.db import get_db
-from app.agents.orchestrator import run_research_job_by_id
+from app.workflow.orchestrator import run_research_job_by_id
 from app.schemas import ResearchChatResponse, ResearchJobCreate, ResearchJobDetail, ResearchJobResponse, ResearchJobSummary
 from app.models.report import Report
 from app.models.research_job import ResearchJob

@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 import signal
-import time
 from threading import Event
 
-from app.agents.orchestrator import run_research_job
+from app.workflow.orchestrator import run_research_job
 from app.config import settings
 from app.db import SessionLocal
 from app.models.research_job import ResearchJob
