@@ -1,18 +1,18 @@
-from app.agents.planner import plan_research
-from app.agents.report_agent import generate_report
-from app.agents.search_agent import search_sources
-from app.agents.summarizer_agent import summarize_findings
+from app.workflow.planner import plan_research
+from app.workflow.reporter import generate_report
+from app.workflow.researcher import search_sources
+from app.workflow.analyst import summarize_findings
 from app.api.capabilities import capabilities
 from app.api.research import _chat_status
 from app.services import llm
 from app.schemas import ResearchJobCreate
 
 
-def test_research_agents_generate_a_source_backed_report(monkeypatch):
+def test_research_workflow_generates_a_source_backed_report(monkeypatch):
     query = "Research AI Engineer salaries in Singapore."
 
     monkeypatch.setattr(
-        "app.agents.planner.generate_json",
+        "app.workflow.planner.generate_json",
         lambda **_: {
             "steps": [
                 "Collect salary and hiring sources.",
@@ -23,7 +23,7 @@ def test_research_agents_generate_a_source_backed_report(monkeypatch):
         },
     )
     monkeypatch.setattr(
-        "app.agents.search_agent.search_web",
+        "app.workflow.researcher.search_web",
         lambda _: [
             {
                 "title": "Example source",
@@ -42,7 +42,7 @@ def test_research_agents_generate_a_source_backed_report(monkeypatch):
         ],
     )
     monkeypatch.setattr(
-        "app.agents.summarizer_agent.generate_json",
+        "app.workflow.analyst.generate_json",
         lambda **_: {
             "findings": [
                 {
@@ -59,7 +59,7 @@ def test_research_agents_generate_a_source_backed_report(monkeypatch):
         },
     )
     monkeypatch.setattr(
-        "app.agents.report_agent.generate_markdown",
+        "app.workflow.reporter.generate_markdown",
         lambda **_: (
             "# Research Report: Research AI Engineer salaries in Singapore.\n\n"
             "## Executive Summary\n"
