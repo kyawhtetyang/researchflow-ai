@@ -85,10 +85,11 @@ def test_research_workflow_generates_a_source_backed_report(monkeypatch):
     assert "## Sources" in report
 
 
-def test_research_api_is_async_first_and_chat_status_friendly():
+def test_research_api_is_queue_only_and_chat_status_friendly():
     payload = ResearchJobCreate(query="What should ResearchFlow investigate next?")
 
-    assert payload.run_now is False
+    assert payload.query.startswith("What should")
+    assert "run_now" not in payload.model_fields
     assert _chat_status("pending") == "queued"
     assert _chat_status("queued") == "queued"
     assert _chat_status("in_progress") == "thinking"
