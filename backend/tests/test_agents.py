@@ -9,7 +9,6 @@ from app.schemas import ResearchJobCreate
 
 def test_research_workflow_generates_a_source_backed_report(monkeypatch):
     query = "Research AI Engineer salaries in Singapore."
-
     monkeypatch.setattr(
         "app.workflow.planner.generate_json",
         lambda **_: {
@@ -71,12 +70,10 @@ def test_research_workflow_generates_a_source_backed_report(monkeypatch):
             "- Build projects that prove applied backend AI delivery. [Sources: 2]"
         ),
     )
-
     plan = plan_research(query)
     sources = search_sources(query)
     findings = summarize_findings(query, sources)
     report = generate_report(query, plan, findings, sources)
-
     assert len(plan) == 4
     assert len(sources) == 2
     assert findings[0]["citation_numbers"] == [1, 2]
@@ -87,9 +84,8 @@ def test_research_workflow_generates_a_source_backed_report(monkeypatch):
 
 def test_research_api_is_queue_only_and_chat_status_friendly():
     payload = ResearchJobCreate(query="What should ResearchFlow investigate next?")
-
     assert payload.query.startswith("What should")
-    assert "run_now" not in payload.model_fields
+    assert "run_now" not in ResearchJobCreate.model_fields
     assert _chat_status("pending") == "queued"
     assert _chat_status("queued") == "queued"
     assert _chat_status("in_progress") == "thinking"
@@ -100,9 +96,7 @@ def test_research_api_is_queue_only_and_chat_status_friendly():
 def test_llm_provider_order_supports_gemini_and_openai_compatible_fallback(monkeypatch):
     monkeypatch.setattr(llm.settings, "llm_provider", "gemini")
     assert llm._provider_order() == ["gemini", "openai_compatible"]
-
     monkeypatch.setattr(llm.settings, "llm_provider", "openai_compatible")
     assert llm._provider_order() == ["openai_compatible", "gemini"]
-
     monkeypatch.setattr(llm.settings, "llm_provider", "auto")
     assert llm._provider_order() == ["gemini", "openai_compatible"]
