@@ -1,7 +1,7 @@
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+
 from app.db import get_db
-from app.workflow.orchestrator import run_research_job_by_id
 from app.schemas import ResearchChatResponse, ResearchJobCreate, ResearchJobDetail, ResearchJobResponse, ResearchJobSummary
 from app.models.report import Report
 from app.models.research_job import ResearchJob
@@ -52,20 +52,13 @@ def list_research_jobs(db: Session = Depends(get_db)):
     return db.query(ResearchJob).order_by(ResearchJob.created_at.desc()).limit(25).all()
 
 
-@router.post("/", response_model=ResearchJobResponse)
-def create_research_job(
-    job_in: ResearchJobCreate,
-    background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db),
-):
+@router.post("/", response_model=ResearchJobResponse, status_code=202)
+def create_research_job(job_in: ResearchJobCreate, db: Session = Depends(get_db)):
+    # The API only enqueues work. The dedicated worker is the sole executor.
     job = ResearchJob(query=job_in.query, status="queued")
     db.add(job)
     db.commit()
     db.refresh(job)
-
-    if job_in.run_now:
-        background_tasks.add_task(run_research_job_by_id, job.id)
-
     return job
 
 
