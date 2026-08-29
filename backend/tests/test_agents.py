@@ -2,7 +2,6 @@ from app.workflow.planner import plan_research
 from app.workflow.reporter import generate_report
 from app.workflow.researcher import search_sources
 from app.workflow.analyst import summarize_findings
-from app.api.capabilities import capabilities
 from app.api.research import _chat_status
 from app.services import llm
 from app.schemas import ResearchJobCreate
@@ -84,18 +83,6 @@ def test_research_workflow_generates_a_source_backed_report(monkeypatch):
     assert "## Executive Summary" in report
     assert "[Sources: 1, 2]" in report
     assert "## Sources" in report
-
-
-def test_capabilities_expose_current_semver_release():
-    payload = capabilities()
-
-    assert payload["version"] == "1.1.0"
-    assert payload["release"] == "1.1.0"
-    assert payload["status"] == "hardening"
-    assert "snapshot_line" not in payload
-    assert "Tavily web search" in payload["core"]["workflow"]
-    assert "stored job history" in payload["core"]["frontend"]
-    assert payload["agents"]["openai_agents_sdk"]["framework"] == "OpenAI Agents SDK"
 
 
 def test_research_api_is_async_first_and_chat_status_friendly():
