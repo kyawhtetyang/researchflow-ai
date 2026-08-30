@@ -18,7 +18,7 @@ services:
     ports:
       - "${API_PORT:-8000}:8000"
     environment:
-      - APP_VERSION=${APP_VERSION:-1.1.0}
+      - APP_VERSION=${APP_VERSION:-1.2.0}
       - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-researchflow}
       - LLM_PROVIDER=${LLM_PROVIDER:-gemini}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
@@ -46,7 +46,7 @@ services:
     build:
       context: ./backend
     environment:
-      - APP_VERSION=${APP_VERSION:-1.1.0}
+      - APP_VERSION=${APP_VERSION:-1.2.0}
       - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-researchflow}
       - LLM_PROVIDER=${LLM_PROVIDER:-gemini}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
