@@ -10,7 +10,7 @@ def capabilities() -> dict[str, object]:
     return {
         "version": settings.app_version,
         "release": settings.app_version,
-        "status": "architecture_refactor",
+        "status": "stable",
         "runtime": {
             "api": ["FastAPI"],
             "database": ["PostgreSQL", "SQLAlchemy", "Alembic"],
