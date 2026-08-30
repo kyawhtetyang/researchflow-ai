@@ -18,7 +18,7 @@ services:
     ports:
       - "${API_PORT:-8000}:8000"
     environment:
-      - APP_VERSION=${APP_VERSION:-1.1.0}
+      - APP_VERSION=${APP_VERSION:-1.2.0}
       - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-researchflow}
       - LLM_PROVIDER=${LLM_PROVIDER:-gemini}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
@@ -26,7 +26,7 @@ services:
       - OPENAI_COMPATIBLE_BASE_URL=${OPENAI_COMPATIBLE_BASE_URL:-}
       - OPENAI_COMPATIBLE_MODEL=${OPENAI_COMPATIBLE_MODEL:-gpt-4.1-mini}
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
-      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-3.6-flash}
       - TAVILY_API_KEY=${TAVILY_API_KEY:-}
       - MODEL_NAME=${MODEL_NAME:-gpt-4.1-mini}
       - SEARCH_PROVIDER=${SEARCH_PROVIDER:-tavily}
@@ -40,13 +40,13 @@ services:
     volumes:
       - ./backend:/app
       - ./frontend:/app/frontend:ro
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
 
   worker:
     build:
       context: ./backend
     environment:
-      - APP_VERSION=${APP_VERSION:-1.1.0}
+      - APP_VERSION=${APP_VERSION:-1.2.0}
       - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-researchflow}
       - LLM_PROVIDER=${LLM_PROVIDER:-gemini}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
@@ -54,7 +54,7 @@ services:
       - OPENAI_COMPATIBLE_BASE_URL=${OPENAI_COMPATIBLE_BASE_URL:-}
       - OPENAI_COMPATIBLE_MODEL=${OPENAI_COMPATIBLE_MODEL:-gpt-4.1-mini}
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
-      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-3.6-flash}
       - TAVILY_API_KEY=${TAVILY_API_KEY:-}
       - MODEL_NAME=${MODEL_NAME:-gpt-4.1-mini}
       - SEARCH_PROVIDER=${SEARCH_PROVIDER:-tavily}

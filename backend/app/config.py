@@ -4,7 +4,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-    app_version: str = "1.1.0"
+    app_version: str = "1.2.0"
     database_url: str = "postgresql+psycopg2://postgres:postgres@db:5432/researchflow"
     llm_provider: str = "gemini"
     openai_api_key: str = ""
@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     openai_compatible_base_url: str = ""
     openai_compatible_model: str = ""
     gemini_api_key: str = ""
-    gemini_model: str = "gemini-2.5-flash"
+    gemini_model: str = "gemini-3.6-flash"
     tavily_api_key: str = ""
     model_name: str = "gpt-4.1-mini"
     search_provider: str = "tavily"

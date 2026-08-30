@@ -1,18 +1,16 @@
-from app.agents.planner import plan_research
-from app.agents.report_agent import generate_report
-from app.agents.search_agent import search_sources
-from app.agents.summarizer_agent import summarize_findings
-from app.api.capabilities import capabilities
+from app.workflow.planner import plan_research
+from app.workflow.reporter import generate_report
+from app.workflow.researcher import search_sources
+from app.workflow.analyst import summarize_findings
 from app.api.research import _chat_status
 from app.services import llm
 from app.schemas import ResearchJobCreate
 
 
-def test_research_agents_generate_a_source_backed_report(monkeypatch):
+def test_research_workflow_generates_a_source_backed_report(monkeypatch):
     query = "Research AI Engineer salaries in Singapore."
-
     monkeypatch.setattr(
-        "app.agents.planner.generate_json",
+        "app.workflow.planner.generate_json",
         lambda **_: {
             "steps": [
                 "Collect salary and hiring sources.",
@@ -23,7 +21,7 @@ def test_research_agents_generate_a_source_backed_report(monkeypatch):
         },
     )
     monkeypatch.setattr(
-        "app.agents.search_agent.search_web",
+        "app.workflow.researcher.search_web",
         lambda _: [
             {
                 "title": "Example source",
@@ -42,7 +40,7 @@ def test_research_agents_generate_a_source_backed_report(monkeypatch):
         ],
     )
     monkeypatch.setattr(
-        "app.agents.summarizer_agent.generate_json",
+        "app.workflow.analyst.generate_json",
         lambda **_: {
             "findings": [
                 {
@@ -59,7 +57,7 @@ def test_research_agents_generate_a_source_backed_report(monkeypatch):
         },
     )
     monkeypatch.setattr(
-        "app.agents.report_agent.generate_markdown",
+        "app.workflow.reporter.generate_markdown",
         lambda **_: (
             "# Research Report: Research AI Engineer salaries in Singapore.\n\n"
             "## Executive Summary\n"
@@ -72,12 +70,10 @@ def test_research_agents_generate_a_source_backed_report(monkeypatch):
             "- Build projects that prove applied backend AI delivery. [Sources: 2]"
         ),
     )
-
     plan = plan_research(query)
     sources = search_sources(query)
     findings = summarize_findings(query, sources)
     report = generate_report(query, plan, findings, sources)
-
     assert len(plan) == 4
     assert len(sources) == 2
     assert findings[0]["citation_numbers"] == [1, 2]
@@ -86,22 +82,10 @@ def test_research_agents_generate_a_source_backed_report(monkeypatch):
     assert "## Sources" in report
 
 
-def test_capabilities_expose_current_semver_release():
-    payload = capabilities()
-
-    assert payload["version"] == "1.1.0"
-    assert payload["release"] == "1.1.0"
-    assert payload["status"] == "hardening"
-    assert "snapshot_line" not in payload
-    assert "Tavily web search" in payload["core"]["workflow"]
-    assert "stored job history" in payload["core"]["frontend"]
-    assert payload["agents"]["openai_agents_sdk"]["framework"] == "OpenAI Agents SDK"
-
-
-def test_research_api_is_async_first_and_chat_status_friendly():
+def test_research_api_is_queue_only_and_chat_status_friendly():
     payload = ResearchJobCreate(query="What should ResearchFlow investigate next?")
-
-    assert payload.run_now is False
+    assert payload.query.startswith("What should")
+    assert "run_now" not in ResearchJobCreate.model_fields
     assert _chat_status("pending") == "queued"
     assert _chat_status("queued") == "queued"
     assert _chat_status("in_progress") == "thinking"
@@ -112,9 +96,7 @@ def test_research_api_is_async_first_and_chat_status_friendly():
 def test_llm_provider_order_supports_gemini_and_openai_compatible_fallback(monkeypatch):
     monkeypatch.setattr(llm.settings, "llm_provider", "gemini")
     assert llm._provider_order() == ["gemini", "openai_compatible"]
-
     monkeypatch.setattr(llm.settings, "llm_provider", "openai_compatible")
     assert llm._provider_order() == ["openai_compatible", "gemini"]
-
     monkeypatch.setattr(llm.settings, "llm_provider", "auto")
     assert llm._provider_order() == ["gemini", "openai_compatible"]

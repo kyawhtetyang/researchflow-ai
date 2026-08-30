@@ -1,20 +1,22 @@
 from __future__ import annotations
 
+import logging
 from datetime import datetime
 
 from sqlalchemy.orm import Session
 
-from app.agents.planner import plan_research
-from app.agents.report_agent import generate_report
-from app.agents.search_agent import search_sources
-from app.agents.summarizer_agent import summarize_findings
+from app.workflow.planner import plan_research
+from app.workflow.reporter import generate_report
+from app.workflow.researcher import search_sources
+from app.workflow.analyst import summarize_findings
 from app.models.report import Report
 from app.models.research_job import ResearchJob
 from app.models.research_step import ResearchStep
 from app.models.source import Source
-from app.db import SessionLocal
 from app.services.citations import score_source_quality
 from app.services.errors import ResearchFlowError
+
+logger = logging.getLogger(__name__)
 
 
 def _add_step(db: Session, job_id: int, order: int, agent_name: str, input_text: str, output_text: str) -> None:
@@ -41,15 +43,17 @@ def _format_findings(findings: list[dict]) -> str:
 
 
 def run_research_job(db: Session, job: ResearchJob) -> ResearchJob:
-    job.status = "in_progress"
-    job.started_at = datetime.utcnow()
-    db.commit()
-    db.refresh(job)
+    """Execute a job that has already been atomically claimed by the worker."""
+    if (job.status or "").strip().lower() != "in_progress":
+        raise ValueError("research job must be claimed before workflow execution")
 
     try:
+        logger.info("Job id=%s stage=planner started", job.id)
         plan = plan_research(job.query)
         _add_step(db, job.id, 1, "planner", job.query, "\n".join(plan))
+        logger.info("Job id=%s stage=planner completed", job.id)
 
+        logger.info("Job id=%s stage=researcher started", job.id)
         raw_sources = search_sources(job.query)
         sources = []
         for raw in raw_sources:
@@ -66,22 +70,33 @@ def run_research_job(db: Session, job: ResearchJob) -> ResearchJob:
             )
             db.add(source)
             sources.append(raw)
-        _add_step(db, job.id, 2, "search_agent", job.query, "\n".join(f"- {s['title']} ({s['url']})" for s in sources))
+        _add_step(db, job.id, 2, "researcher", job.query, "\n".join(f"- {s['title']} ({s['url']})" for s in sources))
+        logger.info("Job id=%s stage=researcher completed sources=%s", job.id, len(sources))
 
+        logger.info("Job id=%s stage=analyst started", job.id)
         findings = summarize_findings(job.query, sources)
-        _add_step(db, job.id, 3, "analysis_agent", "\n".join(s["content"] for s in sources), _format_findings(findings))
+        _add_step(db, job.id, 3, "analyst", "\n".join(s["content"] for s in sources), _format_findings(findings))
+        logger.info("Job id=%s stage=analyst completed findings=%s", job.id, len(findings))
 
+        logger.info("Job id=%s stage=reporter started", job.id)
         markdown = generate_report(job.query, plan, findings, sources)
         report = Report(job_id=job.id, markdown=markdown)
         db.add(report)
-        _add_step(db, job.id, 4, "report_agent", job.query, markdown)
+        _add_step(db, job.id, 4, "reporter", job.query, markdown)
+        logger.info("Job id=%s stage=reporter completed", job.id)
 
         job.status = "completed"
         job.completed_at = datetime.utcnow()
         db.commit()
         db.refresh(job)
+        logger.info("Job id=%s workflow completed", job.id)
         return job
     except ResearchFlowError as exc:
+        logger.warning("Job id=%s workflow failed: %s", job.id, exc.user_message)
+        db.rollback()
+        job = db.query(ResearchJob).filter(ResearchJob.id == job.id).first()
+        if job is None:
+            raise
         job.status = "failed"
         job.error = exc.user_message
         job.completed_at = datetime.utcnow()
@@ -89,22 +104,14 @@ def run_research_job(db: Session, job: ResearchJob) -> ResearchJob:
         db.refresh(job)
         return job
     except Exception:
+        logger.exception("Job id=%s workflow failed unexpectedly", job.id)
+        db.rollback()
+        job = db.query(ResearchJob).filter(ResearchJob.id == job.id).first()
+        if job is None:
+            raise
         job.status = "failed"
         job.error = "Unexpected research workflow failure."
         job.completed_at = datetime.utcnow()
         db.commit()
         db.refresh(job)
         return job
-
-
-def run_research_job_by_id(job_id: int) -> None:
-    db = SessionLocal()
-    try:
-        job = db.query(ResearchJob).filter(ResearchJob.id == job_id).first()
-        if job is None:
-            return
-        if (job.status or "").strip().lower() not in {"queued", "pending"}:
-            return
-        run_research_job(db, job)
-    finally:
-        db.close()
