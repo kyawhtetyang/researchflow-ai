@@ -149,7 +149,7 @@ const renderWorkflowStep = (label: string, text: string) => {
     );
   }
 
-  if (label === 'search_agent') {
+  if (label === 'researcher' || label === 'search_agent') {
     const items = trimmed
       .split('\n')
       .map((line) => line.replace(/^-\s+/, '').trim())
@@ -164,7 +164,7 @@ const renderWorkflowStep = (label: string, text: string) => {
     );
   }
 
-  if (label === 'analysis_agent') {
+  if (label === 'analyst' || label === 'analysis_agent') {
     const lines = trimmed.split('\n').map((line) => line.trim()).filter(Boolean);
     const blocks: Array<{ claim: string; evidence?: string }> = [];
     let current: { claim: string; evidence?: string } | null = null;
