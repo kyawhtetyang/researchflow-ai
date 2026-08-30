@@ -26,7 +26,7 @@ services:
       - OPENAI_COMPATIBLE_BASE_URL=${OPENAI_COMPATIBLE_BASE_URL:-}
       - OPENAI_COMPATIBLE_MODEL=${OPENAI_COMPATIBLE_MODEL:-gpt-4.1-mini}
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
-      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-3.6-flash}
       - TAVILY_API_KEY=${TAVILY_API_KEY:-}
       - MODEL_NAME=${MODEL_NAME:-gpt-4.1-mini}
       - SEARCH_PROVIDER=${SEARCH_PROVIDER:-tavily}
@@ -40,7 +40,7 @@ services:
     volumes:
       - ./backend:/app
       - ./frontend:/app/frontend:ro
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
 
   worker:
     build:
@@ -54,7 +54,7 @@ services:
       - OPENAI_COMPATIBLE_BASE_URL=${OPENAI_COMPATIBLE_BASE_URL:-}
       - OPENAI_COMPATIBLE_MODEL=${OPENAI_COMPATIBLE_MODEL:-gpt-4.1-mini}
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
-      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-3.6-flash}
       - TAVILY_API_KEY=${TAVILY_API_KEY:-}
       - MODEL_NAME=${MODEL_NAME:-gpt-4.1-mini}
       - SEARCH_PROVIDER=${SEARCH_PROVIDER:-tavily}
