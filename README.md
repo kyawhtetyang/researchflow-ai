@@ -3,14 +3,14 @@
 Agentic research workflow platform:
 
 ```text
-Plan -> Search -> Analyze -> Report -> Store
+Plan -> Research -> Analyze -> Report -> Store
 ```
 
-ResearchFlow AI is the next step after `RAG Knowledge Assistant`. The earlier RAG project proves retrieval QA. ResearchFlow AI proves multi-step research orchestration with stored jobs, sources, workflow steps, and cited reports.
+ResearchFlow AI executes asynchronous, multi-step research jobs with persisted workflow steps, web sources, analysis, and cited reports.
 
 ## Current Release
-- Release line: `1.1.0` production-hardening candidate
-- Stable predecessor: `1.0.0`
+- Release line: `1.2.0`
+- Stable predecessor: `1.1.0`
 - Stack: FastAPI + PostgreSQL/pgvector + background worker + React/Vite frontend
 - LLM path: Gemini with OpenAI-compatible fallback support
 - Search path: Tavily web search
@@ -22,17 +22,42 @@ ResearchFlow AI is the next step after `RAG Knowledge Assistant`. The earlier RA
 React/Vite
     |
     v
-FastAPI API ----> PostgreSQL / pgvector
-    |                    ^
-    | queue job          |
-    v                    |
-Background worker -------+
+FastAPI API
+    |
+    | create queued job
+    v
+PostgreSQL / pgvector
+    |
+    | atomic claim with SKIP LOCKED
+    v
+Background worker
     |
     v
-Plan -> Search -> Analyze -> Report
+Workflow
+    |- Plan
+    |- Research
+    |- Analyze
+    `- Report
+    |
+    +--> LLM service
+    `--> Search service
+    |
+    v
+Persist steps + sources + report + terminal job state
 ```
 
-New research requests are persisted as queued jobs. The worker claims queued jobs, records workflow steps and sources, and stores the final cited report.
+The API owns HTTP concerns and persists new jobs as `queued`. The worker is the sole workflow executor. It atomically claims queued jobs, commits the claim before provider calls, runs the application workflow, and persists either a completed result or a safe failed state.
+
+The active workflow application core lives in `backend/app/workflow/`. Framework adapters and RAG integrations are intentionally kept outside the active runtime and documented under `docs/future/`.
+
+## Job Lifecycle
+
+```text
+queued -> in_progress -> completed
+                     `-> failed
+```
+
+Only queued jobs are claimable. PostgreSQL row locking with `FOR UPDATE SKIP LOCKED` prevents concurrent workers from claiming the same job.
 
 ## Setup
 
@@ -44,6 +69,8 @@ open http://127.0.0.1:8000/docs
 ```
 
 Docker Compose waits for PostgreSQL health, runs `alembic upgrade head` in a one-shot migration service, and starts both the API and worker only after migrations succeed.
+
+Gemini defaults to `gemini-3.6-flash`. Provider credentials remain environment configuration and must not be committed.
 
 ## Frontend Development
 
@@ -75,16 +102,26 @@ CI validates Alembic migrations, backend tests, frontend lint/tests/build, the p
 - `GET /api/research/{job_id}/chat`
 - `GET /api/research/{job_id}/summary`
 - `GET /api/jobs/`
+- `GET /api/jobs/{job_id}`
+- `GET /api/jobs/{job_id}/steps`
 - `GET /api/reports/{job_id}`
+- `GET /api/reports/{job_id}/sources`
 - `POST /api/eval/run`
 
 ## Runtime Notes
-- The backend is async-first: new research jobs are created as `queued` and processed by the worker.
+- The backend is asynchronous: research jobs are created as `queued` and processed only by the worker.
 - Workers use database row locking with `SKIP LOCKED` so multiple workers do not claim the same queued job.
+- Worker and workflow lifecycle events are logged for operational visibility.
 - The worker handles SIGTERM/SIGINT and stops claiming new work while allowing the active call to return before exit.
-- The frontend polls `GET /api/research/{job_id}/chat`.
+- The frontend polls `GET /api/research/{job_id}/chat` and understands both current `researcher`/`analyst` labels and legacy workflow labels.
 - Production requires the web and worker services to share the same `DATABASE_URL` and provider credentials.
 - Do not use `Base.metadata.create_all()` for production schema changes; add and apply Alembic migrations.
+
+## v1.2.0 Scope
+
+v1.2.0 is an architecture and runtime-correctness release rather than a feature-expansion release. It separates the HTTP boundary from workflow execution, makes the worker the sole executor, establishes canonical job states, strengthens PostgreSQL concurrency behavior, expands backend/frontend tests, adds operational logging, refreshes provider defaults, and removes inactive experimental runtime packages.
+
+RAG, LangGraph, LangChain, LlamaIndex, OpenAI Agents SDK orchestration, Redis, Celery, Kubernetes, authentication, and distributed tracing are not part of the v1.2.0 active runtime.
 
 ## Release Convention
 
